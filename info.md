@@ -104,11 +104,11 @@ Status: complete
 Tags: software
 Tools: PyTorch, VGG19, Python
 Summary: Repainting a photo in the style of another image by optimizing the pixels against a pretrained VGG19 network.
-Link: [Try the app](http://localhost:8501)
+Link: [View the code](https://github.com/Arjun-Mahes/Neural-Style-Transfer)
 - Implemented Gatys et al.'s method in PyTorch: content comes from VGG19's conv4_2 features, style from Gram matrices across five convolutional layers.
 - Weighted the style layers from fine brushstrokes (conv1_1) down to large structures (conv5_1), with the style loss weighted 10⁶ to 1 against content.
 - Optimized the image itself (not a network) with Adam for 10,000 steps on a GPU; here a golden retriever photo repainted in the style of a Japanese wave woodblock print.
-- Built a Streamlit app around it: upload a photo and a style image, watch a live preview as it optimizes, and download the result.
+- Built a Streamlit app around it: upload a photo and a style image, watch a live preview as it optimizes, and download the result. The code and run instructions are on GitHub.
 
 ### Ion Trap Simulation
 ![](images/projects/ion-trap.jpg)
