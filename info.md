@@ -2,59 +2,121 @@
 Mechatronics engineering @UWaterloo.
 
 ## Socials
-- [GitHub](https://github.com)
-- [LinkedIn](https://linkedin.com)
-- [Email](mailto:hello@example.com)
+- [GitHub](https://github.com/Arjun-Mahes)
+- [LinkedIn](https://www.linkedin.com/in/arjun-mahes/)
+- [Email](mailto:a2mahes@uwaterloo.ca)
 
 ## Home
-### Some things about me:
-- 2A Mechatronics Engineering @UWaterloo
-- I'm currently building an exoskeleton that helps retrain motion in stroke patients.
-- I love to start endeavours I don't know anything about or don't have the skills to make and learn as I build. You learn so much more by figuring it out through the creative process rather than watching a course. 
-- I love biking and exploring the city and the trails that surround it. 
-
-### Some things I'm interested in:
-- Biomechatronics, exoskeleton robotics, and human motion retraining.
-- Embedded hardware, custom PCB design, and motor control firmware.
-- High-efficiency physical computing, edge acceleration, and robotic kinematics.
-- Exploring multidisciplinary systems where hardware, software, and physical mechanics meet.
-
-## Projects
-### Distributed Neural Engine
-![Project photo](https://picsum.photos/id/1015/900/1200)
-A lightweight inference runtime designed for low-power edge accelerators and WebGPU. Implements custom quantization kernels and zero-copy tensor streaming.
-- [GitHub Repository](https://github.com) / [Live Demo](https://example.com) / [Read Writeup](https://example.com)
-
-### Micro-Fluidics Simulation Sandbox
-![Project photo](https://picsum.photos/id/1018/900/1200)
-An interactive, GPU-accelerated simulation environment for modeling multi-phase laminar flow and droplet dynamics in real time.
-- [GitHub Repository](https://github.com) / [Research Paper](https://example.com)
-
-### Graphite & Monolith
-![Project photo](https://picsum.photos/id/1039/900/1200)
-A curated digital archive and visual essay exploring brutalist architecture, structural geometry, and graphite pencil studies.
-- [View Gallery](https://example.com) / [Case Study](https://example.com)
-
-### Latent Canvas
-![Project photo](https://picsum.photos/id/1043/900/1200)
-A minimal desktop application for fluid markdown note-taking with embedded mathematical notation and bidirectional linking.
-- [GitHub Repository](https://github.com) / [Download App](https://example.com)
-
-## Writing
-### Essays & Notes
-- [Building an Exoskeleton from Scratch: Hardware Architecture & Lessons](#) — *June 2026*
-- [The Case for Intuitive Engineering vs. Coursework](#) — *April 2026*
-- [Real-Time Motor Control with ESP32 & FreeRTOS](#) — *February 2026*
-- [Why Startups are the Ultimate Creative Canvas](#) — *November 2025*
+- 🤖 robots & semiconductors
+- ⚡ embedded systems and testing at Soneil Spark
+- 🔬 fab hardware at Hacker Fab
+- 🦾 exoskeletons for stroke rehab
 
 <!--
-## Work
-### Engineering Intern - Soneil Spark (May 2026 – August 2026)
-- I helped build an assembly line and automate compliance testing for an AC/DC charger and battery manufacturing company. Also did a lot of R&D work with the cooling systems for their new battery trailer.
-
-### Hardware Prototyping Engineer — Hackerfab (Jan 2026 – May 2026)
-- I designed a custom PCB in KiCad to control the Argon gas flow for a home-built physical vapour deposition setup. I dug into the research and built the actual device using an ESP32, a stepper motor, and a pressure sensor.
-
-### Software Engineer — DietIQ (July 2025 - August 2025)
-- I formed datasets using public nutrition guidelines and implemented a RAG pipeline and a reinforcement fine tuned response grading system.
+  PROJECTS
+  Each project is a "### Title" block. The lines below it are:
+    ![](images/projects/<name>.jpg)   card + popup photo (placeholder shown until the file exists)
+    Where:   shown above the title on the card
+    Status:  shipped | in progress | prototype | 1st place
+    Tags:    hardware, software   (drives the filter buttons)
+    Tools:   shown on the card footer
+    Summary: 1-2 lines on the card
+  Anything after that (bullets, paragraphs) only shows in the popup when the card is clicked.
 -->
+## Projects
+### Stroke Rehab Exoskeleton
+![](images/projects/exoskeleton.jpg)
+Where: Personal
+Status: in progress
+Tags: hardware, firmware, software
+Tools: SolidWorks, Altium, STM32CubeMX
+Summary: An elbow exoskeleton that assists only as much as the patient needs, driven by EMG and eventually EEG.
+- Designed the elbow joint assembly and the electrical system in Altium: an STM32 talking over SPI, I2C and UART to a motor driver, magnetic encoder, ESP32 and two EMG sensors.
+- Implemented Field-Oriented Control for a 3-phase BLDC motor, with assist-as-needed firmware that scales torque inversely to EMG muscle activation, so support drops as the patient recovers.
+- Developing an EEG deep learning model for motor imagery detection to trigger the assist, with the ESP32 handling wireless telemetry for the brain-computer interface.
+
+### Scanning Tunneling Microscope
+![](images/projects/stm.jpg)
+Where: Personal
+Status: in progress
+Tags: hardware, firmware
+Tools: SolidWorks, KiCad, C++
+Summary: A homebuilt STM with a piezo scan head, magnetic vibration isolation, and custom preamp and control electronics.
+- Designed a damped vibration isolation system using magnets, springs and threaded rods.
+- Engineered a piezoelectric scan head capable of sub-angstrom movement across a substrate.
+- Designed schematics for the preamplifier and control circuits (DACs, ADCs, op-amps, noise reduction); now moving from validated schematics to routing.
+- Writing a continuous PI feedback loop in C++ to regulate sensor inputs and actuator states in real time.
+
+### EV Charger Test Stations
+![](images/projects/ev-charger-tester.jpg)
+Where: Soneil Spark · 2026
+Status: shipped
+Tags: hardware, firmware, software
+Tools: C++, ESP32, Raspberry Pi
+Summary: Automated high-voltage AC/DC test rigs that run a charger through its safety compliance checks in about two minutes.
+- Integrated relay boards, contactors and simulated EV-to-EVSE communication to validate government safety compliance.
+- Wrote custom C++ firmware and built dashboards on a Raspberry Pi and ESP32 to run the test hardware autonomously, cutting the test cycle to 2 minutes per charger.
+
+### Third Thumb Prosthetic
+![](images/projects/third-thumb.jpg)
+Where: Personal
+Status: prototype
+Tags: hardware, firmware
+Tools: SolidWorks, Altium, nRF52810
+Summary: A wearable robotic extra thumb, controlled by forearm EMG or by pressing your toes in a sensor-equipped shoe.
+- Designed the CAD in SolidWorks, with two servo motors for digit articulation and grip control.
+- Designed two wireless transmitter PCBs for dual-mode proportional control: an ESP32-based EMG amplifier with signal filtering, and an nRF52810 dual-FSR shoe that turns toe pressure into multi-axis joint movement.
+
+### EMG Amplifier PCB
+![](images/projects/emg-amplifier.jpg)
+Where: Personal
+Status: complete
+Tags: hardware, firmware
+Tools: KiCad, ESP32-S3, Analog design
+Summary: A custom board that amplifies and filters muscle signals, then digitizes them on an ESP32-S3 and streams them wirelessly.
+- Rebuilt the Advancer Technologies EMG analog chain in KiCad: instrumentation amplifier, gain stages, a ~106 Hz high-pass, full-wave rectifier and a ~2 Hz envelope low-pass with a trimmable final gain.
+- Added an ESP32-S3 to sample the envelope and broadcast it wirelessly to another microcontroller, with native USB-C for programming and a buck converter for the 3.3 V rail.
+- Runs from split ±9 V batteries for the analog side; built as the muscle-sensing front end for my prosthetic and exoskeleton projects.
+
+### Argon Mass Flow Controller
+![](images/projects/argon-mfc.jpg)
+Where: Hacker Fab · 2025
+Status: prototype
+Tags: hardware, firmware
+Tools: KiCad, ESP32, Stepper motor
+Summary: A custom ESP32 board and closed-loop controller that meters argon into a PVD sputtering system.
+- Designed a custom PCB in KiCad with an ESP32 and a motor driver.
+- Engineered a closed-loop controller that reads a pressure sensor and commands a stepper motor to actuate the gas tank valve, regulating argon flow.
+
+### Triboelectric Nanogenerators
+![](images/projects/teng.jpg)
+Where: Personal
+Status: complete
+Tags: hardware
+Tools: Materials, Energy harvesting
+Summary: Harvesting electricity from contact and motion using triboelectric materials.
+- Details coming soon.
+
+### Neural Style Transfer
+![](images/projects/style-transfer.png)
+Where: Personal
+Status: complete
+Tags: software
+Tools: PyTorch, VGG19, Python
+Summary: Repainting a photo in the style of another image by optimizing the pixels against a pretrained VGG19 network.
+Link: [Try the app](http://localhost:8501)
+- Implemented Gatys et al.'s method in PyTorch: content comes from VGG19's conv4_2 features, style from Gram matrices across five convolutional layers.
+- Weighted the style layers from fine brushstrokes (conv1_1) down to large structures (conv5_1), with the style loss weighted 10⁶ to 1 against content.
+- Optimized the image itself (not a network) with Adam for 10,000 steps on a GPU; here a golden retriever photo repainted in the style of a Japanese wave woodblock print.
+- Built a Streamlit app around it: upload a photo and a style image, watch a live preview as it optimizes, and download the result.
+
+### Ion Trap Simulation
+![](images/projects/ion-trap.jpg)
+Where: HardHaQ Hackathon
+Status: 1st place
+Tags: software
+Tools: COMSOL, Python, SciPy
+Summary: Optimized trapped-ion quantum computer geometries in COMSOL. Our surface trap doubled trap depth and took 1st place.
+- With a team of 4, simulated and optimized Paul and surface trap geometries in COMSOL Multiphysics.
+- Built a Python–COMSOL pipeline using parameter sweeps and SciPy optimizers (Nelder-Mead, SLSQP) to tune geometry and voltages against trap depth, symmetry and RF power.
+- Designed a novel surface-electrode trap with 2x the trap depth and over 30,000x lower estimated RF power than the baseline rod design.

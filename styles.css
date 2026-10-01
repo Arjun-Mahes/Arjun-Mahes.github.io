@@ -1,618 +1,1237 @@
+/* ═══════════════════════════════════════════
+   Arjun Mahes — minimal
+   Off-white page, white cards, black type, one quiet accent.
+   ═══════════════════════════════════════════ */
+
 :root {
-    /* Warm off-white archival parchment canvas matching Keogan reference */
-    --bg-color: #FAF8F5;
-    --text-primary: #22201E;
-    --text-secondary: #4A4642;
-    --text-muted: #827C75;
-    --text-faint: #B0AAA2;
-    --border-color: #E8E3DA;
-    --border-subtle: #F0ECE4;
-    
-    /* Dedicated Accent Color for Interactive Elements */
-    --accent-color: #A84825;
-    --accent-hover: #7C2D12;
+    --bg: #FAFAF8;
+    --surface: #FFFFFF;
+    --ink: #1A1A1A;
+    --ink-2: #555350;
+    --ink-3: #8C8984;
+    --line: #ECEAE6;
+    --line-strong: #D9D6D0;
+    --fill: #F3F2EF;
+    --accent: #A84825;
 
-    /* General Links */
-    --link-color: #22201E;
-    --link-hover: #A84825;
-    --card-bg: #FAF8F5;
-    --card-border: #E8E3DA;
-
-    /* Fonts */
-    --font-heading: 'Fraunces', 'Newsreader', Georgia, 'Times New Roman', serif;
-    --font-serif: 'Newsreader', 'Lora', Georgia, 'Times New Roman', serif;
-    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
-
-    --sidebar-width: 210px;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", system-ui, sans-serif;
+    --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", system-ui, sans-serif;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 12px 32px -16px rgba(0, 0, 0, 0.12);
 }
 
-* {
+*,
+*::before,
+*::after {
     box-sizing: border-box;
-    margin: 0;
-    padding: 0;
 }
 
-html {
-    scroll-behavior: smooth;
+html,
+body {
+    margin: 0;
 }
 
 body {
-    background-color: var(--bg-color);
-    color: var(--text-primary);
-    font-family: var(--font-serif);
-    font-size: 17px;
-    line-height: 1.7;
+    min-height: 100dvh;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.6 var(--font);
+    letter-spacing: -0.011em;
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    min-height: 100vh;
 }
 
-/* Base Link Style */
-a {
-    color: var(--link-color);
-    text-decoration: underline;
-    text-decoration-color: var(--border-color);
-    text-underline-offset: 3px;
-    transition: color 0.15s ease, text-decoration-color 0.15s ease;
-}
-
-a:hover {
-    color: var(--link-hover);
-    text-decoration-color: var(--link-hover);
-}
-
-/* Layout Container */
-.layout {
-    display: flex;
-    max-width: 860px;
-    margin: 90px auto 60px auto;
-    padding: 0 28px;
-    align-items: flex-start;
-}
-
-/* Sidebar Frame — Adam / Professional Placement */
-.sidebar {
-    width: 155px;
-    padding: 0 16px 0 0;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    height: 520px;
-    border-right: none;
-}
-
-.nav-section {
-    margin-bottom: 28px;
-}
-
-.section-label {
-    font-family: var(--font-sans);
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 12px;
-}
-
-/* Navigation Links */
-.nav-list {
-    list-style: none;
-}
-
-.nav-list li {
-    margin-bottom: 10px;
-}
-
-.nav-link {
-    display: inline-block;
-    font-family: var(--font-serif);
-    font-size: 1.08rem;
-    font-weight: 400;
-    color: #78716C;
-    padding: 1px 0;
-    text-decoration: none;
-    transition: color 0.15s ease;
-    letter-spacing: -0.01em;
-}
-
-.nav-link:hover {
-    color: var(--text-primary);
-    text-decoration: none;
-}
-
-.nav-link.active {
-    color: var(--accent-color);
-    font-weight: 600;
-    text-decoration: none;
-}
-
-/* Vertical Divider — Fixed consistent length across all three tabs */
-.vertical-divider {
-    width: 1px;
-    background: var(--border-color);
-    flex-shrink: 0;
-    height: 520px;
-    align-self: flex-start;
-}
-
-/* Social Links */
-.social-links {
-    list-style: none;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-top: 8px;
-}
-
-.social-links li {
-    margin-bottom: 0;
-}
-
-.social-link {
-    color: var(--text-muted);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-    opacity: 0.65;
-    transition: color 0.15s ease, opacity 0.15s ease;
-}
-
-.social-link:hover {
-    color: var(--accent-color);
-    opacity: 1;
-    text-decoration: none;
-}
-
-.social-link svg {
-    width: 20px;
-    height: 20px;
-}
-
-/* Main Content Area — Alignment & Adam's Text Width */
-.content-wrapper {
-    flex: 1;
-    padding: 0 0 0 46px;
-    max-width: 640px;
-}
-
-/* Header Section — Typography & Placement */
-.profile-header {
-    margin-bottom: 20px;
-    padding-bottom: 0;
-    border-bottom: none;
-}
-
-.site-title {
-    font-family: var(--font-heading);
-    font-size: 3.1rem;
-    font-weight: 700;
-    font-optical-sizing: auto;
-    color: var(--accent-color);
-    letter-spacing: -0.025em;
-    line-height: 1.06;
-    margin-top: -6px;
-    margin-bottom: 20px;
-}
-
-.site-tagline {
-    font-family: var(--font-serif);
-    font-size: 1.05rem;
-    color: var(--text-secondary);
-    line-height: 1.6;
-    margin-bottom: 24px;
-    max-width: 580px;
-}
-
-.site-tagline p {
-    margin: 0;
-    color: inherit;
-    font-size: inherit;
-}
-
-/* Dynamic Tab Content */
-.tab-content {
-    min-height: 200px;
-    max-width: 580px;
-}
-
-.tab-content.projects-view {
-    max-width: 720px;
-}
-
-/* Markdown Typography */
-.tab-content h2 {
-    font-family: var(--font-heading);
-    font-size: 1.85rem;
-    font-weight: 600;
-    font-optical-sizing: auto;
-    margin-top: 32px;
-    margin-bottom: 14px;
-    color: var(--text-primary);
-    letter-spacing: -0.015em;
-}
-
-.tab-content h3 {
-    font-family: var(--font-heading);
-    font-size: 1.22rem;
-    font-weight: 600;
-    font-optical-sizing: auto;
-    margin-top: 28px;
-    margin-bottom: 12px;
-    color: var(--text-primary);
-    line-height: 1.4;
-    letter-spacing: -0.01em;
-}
-
-.tab-content p {
-    font-size: 1.04rem;
-    color: var(--text-secondary);
-    margin-bottom: 16px;
-    line-height: 1.7;
-}
-
-.tab-content strong {
-    color: var(--text-primary);
-    font-weight: 600;
-}
-
-.tab-content em {
-    font-style: italic;
-}
-
-.tab-content ul {
-    list-style-type: disc;
-    padding-left: 20px;
-    margin-bottom: 22px;
-}
-
-.tab-content li {
-    font-size: 1.04rem;
-    color: var(--text-secondary);
-    margin-bottom: 10px;
-    padding-left: 2px;
-    line-height: 1.7;
-}
-
-/* Work & Writing Tab Enhancements */
-.tab-content.writing-view ul {
-    list-style: none;
-    padding-left: 0;
-}
-
-.tab-content.writing-view li {
-    padding-left: 0;
-    margin-bottom: 14px;
-    line-height: 1.6;
-}
-
-.tab-content.writing-view a {
-    color: var(--text-primary);
-    font-weight: 500;
-    text-decoration: underline;
-    text-decoration-color: var(--border-color);
-}
-
-.tab-content.writing-view a:hover {
-    color: var(--accent-color);
-    text-decoration-color: var(--accent-color);
-}
-
-.tab-content.writing-view em {
-    color: var(--text-muted);
-    font-size: 0.9em;
-    font-style: italic;
-    margin-left: 6px;
-}
-
-.tab-content.work-view h3 {
-    margin-top: 32px;
-    padding-top: 20px;
-    border-top: 1px dashed var(--border-color);
-}
-
-.tab-content.work-view h3:first-of-type {
-    margin-top: 8px;
-    padding-top: 0;
-    border-top: none;
-}
-
-/* ═══════════════════════════════════════════
-   REACTBITS CIRCULAR GALLERY (3D WebGL)
-   ═══════════════════════════════════════════ */
-
-.circular-gallery-section {
-    width: 100%;
-}
-
-/* 3D Canvas Mount Wrapper (Enlarged Centered) */
-.circular-gallery-wrapper {
-    width: 100%;
-    max-width: 100%;
-    height: 520px;
-    position: relative;
-    background: transparent;
-    border: none;
-    box-shadow: none;
+/* While the gallery or a project is open, the page behind stays put */
+html.locked,
+html.locked body {
     overflow: hidden;
 }
 
-.circular-gallery-mount {
-    width: 100%;
-    height: 100%;
-    cursor: grab;
+a {
+    color: inherit;
 }
 
-.circular-gallery-mount:active {
-    cursor: grabbing;
+button {
+    font: inherit;
+    color: inherit;
 }
 
-.circular-gallery-mount canvas {
-    display: block;
-    width: 100% !important;
-    height: 100% !important;
-    outline: none;
+code {
+    font-size: 0.88em;
+    background: var(--fill);
+    padding: 1px 5px;
+    border-radius: 3px;
+}
+
+:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 3px;
+}
+
+@keyframes rise {
+    from { opacity: 0; transform: translateY(6px); }
+}
+
+/* Small uppercase label used across the site */
+.location,
+.dive-where,
+.dive-facts dt,
+.dive-nav small {
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
 }
 
 /* ═══════════════════════════════════════════
-   PROJECT ENLARGEMENT MODAL
+   LANDING CARD
    ═══════════════════════════════════════════ */
+.landing {
+    min-height: 100dvh;
+    display: grid;
+    place-items: center;
+    padding: 48px 24px;
+}
 
-.project-modal {
+.card {
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    gap: 44px;
+    width: min(980px, 100%);
+    padding: 20px 44px 20px 20px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    animation: rise 0.33s var(--ease) both;
+}
+
+.card-photo {
+    position: relative;
+    min-height: 400px;
+    overflow: hidden;
+    border-radius: 6px;
+    background: var(--fill);
+}
+
+.card-photo::after {
+    content: "images/me.jpg";
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 50;
+    inset: auto 0 14px;
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--ink-3);
+}
+
+.card-photo img {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 16px 0;
+}
+
+.location {
+    margin: 0;
+}
+
+.name {
+    margin: 10px 0 4px;
+    font: 700 2.8rem/1.05 var(--font-display);
+    letter-spacing: -0.04em;
+}
+
+.tagline {
+    margin: 0 0 22px;
+    color: var(--ink-2);
+}
+
+.about {
+    list-style: none;
+    margin: 0 0 28px;
+    padding: 0;
+}
+
+.about li {
+    padding: 9px 0;
+    border-top: 1px solid var(--line);
+    font-size: 1rem;
+    line-height: 1.4;
+}
+
+.about li:last-child {
+    border-bottom: 1px solid var(--line);
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 22px;
+}
+
+.gallery-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border: 0;
+    border-radius: 6px;
+    background: var(--ink);
+    color: var(--bg);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.11s ease;
+}
+
+.gallery-btn span {
+    transition: transform 0.14s var(--ease);
+}
+
+.gallery-btn:hover {
+    background: #000;
+}
+
+.gallery-btn:hover span {
+    transform: translateX(3px);
+}
+
+.links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+}
+
+.link-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.92rem;
+    color: var(--ink-2);
+    text-decoration: none;
+    transition: color 0.08s ease;
+}
+
+.link-pill svg {
+    width: 16px;
+    height: 16px;
+}
+
+.link-pill:hover {
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+/* ═══════════════════════════════════════════
+   SHARED OVERLAY BITS
+   ═══════════════════════════════════════════ */
+.close-btn {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--surface);
+    cursor: pointer;
+    transition: border-color 0.08s ease, background-color 0.08s ease;
+}
+
+.close-btn svg {
+    width: 15px;
+    height: 15px;
+}
+
+.close-btn:hover {
+    border-color: var(--line-strong);
+    background: var(--fill);
+}
+
+.status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 9px;
+    border-radius: 6px;
+    background: var(--surface);
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--ink-2);
+    text-transform: capitalize;
+    white-space: nowrap;
+}
+
+.status i {
+    width: 6px;
+    height: 6px;
+    border-radius: 6px;
+    background: var(--ink-3);
+}
+
+.status--progress i {
+    background: var(--accent);
+}
+
+.status--win i {
+    background: #3F6B4F;
+}
+
+/* ═══════════════════════════════════════════
+   PROJECT GALLERY
+   ═══════════════════════════════════════════ */
+.gallery,
+.project-modal {
+    position: fixed;
+    inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 24px;
     opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
+    visibility: hidden;
+    transition: opacity 0.17s ease, visibility 0s linear 0.17s;
 }
 
+.gallery {
+    z-index: 40;
+    padding: 24px;
+}
+
+.gallery.open,
 .project-modal.modal-open {
     opacity: 1;
-    pointer-events: auto;
+    visibility: visible;
+    transition: opacity 0.17s ease;
+}
+
+.gallery-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(250, 250, 248, 0.35);
+}
+
+.gallery-panel {
+    position: relative;
+    width: min(1160px, 100%);
+    max-height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0 28px 28px;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    transform: translateY(8px);
+    transition: transform 0.25s var(--ease);
+}
+
+.gallery.open .gallery-panel {
+    transform: none;
+}
+
+.gallery-head {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 22px 0 18px;
+    background: linear-gradient(rgba(255, 255, 255, 0.9) 75%, rgba(255, 255, 255, 0));
+}
+
+.gallery-head h2 {
+    margin: 0 auto 0 0;
+    font: 700 1.6rem/1.1 var(--font-display);
+    letter-spacing: -0.03em;
+}
+
+.filters {
+    display: flex;
+    gap: 4px;
+    padding: 3px;
+    border-radius: 6px;
+    background: var(--fill);
+}
+
+.filter-btn {
+    padding: 5px 13px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: background-color 0.11s ease, color 0.11s ease;
+}
+
+.filter-btn:hover {
+    color: var(--ink);
+}
+
+.filter-btn[aria-pressed="true"] {
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Mosaic: tiles of different sizes, packed densely */
+.masonry {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-rows: 160px;
+    grid-auto-flow: dense;
+    gap: 12px;
+}
+
+.tile {
+    position: relative;
+    overflow: hidden;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: var(--fill);
+    text-align: left;
+    cursor: pointer;
+}
+
+.tile--big { grid-column: span 2; grid-row: span 2; }
+.tile--tall { grid-row: span 2; }
+.tile--wide { grid-column: span 2; }
+
+.tile[hidden] {
+    display: none;
+}
+
+.gallery.open .tile {
+    animation: rise 0.28s var(--ease) both;
+    animation-delay: calc(0.03s + var(--d, 0) * 0.025s);
+}
+
+.tile img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.33s var(--ease);
+}
+
+.tile:hover img {
+    transform: scale(1.03);
+}
+
+/* Title only on hover (or keyboard focus): an even dark veil, like turning the brightness
+   down, with the title centred */
+.tile-title {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 18px;
+    background: rgba(0, 0, 0, 0.5);
+    text-align: center;
+    font: 600 1.05rem/1.25 var(--font-display);
+    letter-spacing: -0.02em;
+    color: #fff;
+    opacity: 0;
+    transition: opacity 0.14s ease;
+}
+
+.tile--big .tile-title {
+    font-size: 1.4rem;
+}
+
+.tile:hover .tile-title,
+.tile:focus-visible .tile-title {
+    opacity: 1;
+}
+
+/* ═══════════════════════════════════════════
+   PROJECT DEEP DIVE
+   ═══════════════════════════════════════════ */
+.project-modal {
+    z-index: 50;
+    padding: 24px;
 }
 
 .modal-backdrop {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(250, 248, 245, 0.85);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    inset: 0;
+    background: rgba(26, 26, 26, 0.28);
 }
 
-.modal-card {
+.dive {
     position: relative;
-    width: 100%;
-    max-width: 680px;
-    max-height: 90%;
-    background: #FAF8F5;
-    border-radius: 16px;
-    border: 1px solid var(--border-color);
-    box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.12), 0 8px 24px -4px rgba(0, 0, 0, 0.06);
-    overflow: hidden;
-    transform: scale(0.92) translateY(16px);
-    transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.25, 1);
     display: flex;
     flex-direction: column;
+    width: min(820px, 100%);
+    max-height: 100%;
+    overflow: hidden;
+    background: var(--surface);
+    border-radius: 10px;
+    box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.35);
+    transform: translateY(8px);
+    transition: transform 0.22s var(--ease);
 }
 
-.project-modal.modal-open .modal-card {
-    transform: scale(1) translateY(0);
+.project-modal.modal-open .dive {
+    transform: none;
 }
 
-.modal-close-btn {
+.dive-close {
     position: absolute;
-    top: 14px;
-    right: 14px;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.88);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    cursor: pointer;
+    top: 16px;
+    right: 16px;
+    z-index: 2;
+}
+
+.dive-scroll {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.dive-hero {
+    aspect-ratio: 16 / 8;
+    overflow: hidden;
+    background: var(--fill);
+}
+
+.dive-hero img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.dive-body {
+    padding: 28px 40px 4px;
+}
+
+.dive-where {
+    margin: 0;
+}
+
+.dive-title {
+    margin: 6px 0 20px;
+    font: 700 2.1rem/1.1 var(--font-display);
+    letter-spacing: -0.035em;
+}
+
+.dive-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+    margin: 0 0 24px;
+    padding: 16px 0;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+}
+
+.dive-facts dt {
+    margin-bottom: 4px;
+}
+
+.dive-facts dd {
+    margin: 0;
+    font-size: 0.92rem;
+}
+
+.dive-facts .status {
+    padding: 0;
+}
+
+.dive-summary {
+    margin: 0 0 18px;
+    font-size: 1.15rem;
+    line-height: 1.5;
+    letter-spacing: -0.015em;
+}
+
+.dive-details p {
+    color: var(--ink-2);
+}
+
+.dive-details ul {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.dive-details li {
+    padding: 5px 0 5px 4px;
+    line-height: 1.6;
+    color: var(--ink-2);
+}
+
+.dive-details li::marker {
+    color: var(--ink-3);
+}
+
+.dive-nav {
     display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 24px;
+    padding: 20px 40px 28px;
+    border-top: 1px solid var(--line);
+}
+
+.dive-nav button {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-width: 48%;
+    padding: 0;
+    border: 0;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+}
+
+.dive-nav button:last-child {
+    margin-left: auto;
+    text-align: right;
+}
+
+.dive-nav span {
+    font-weight: 600;
+    letter-spacing: -0.015em;
+}
+
+.dive-nav button:hover span {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+/* ═══════════════════════════════════════════
+   SMALLER SCREENS
+   ═══════════════════════════════════════════ */
+@media (max-width: 1000px) {
+    .masonry {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .landing {
+        padding: 20px 14px;
+    }
+
+    .card {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        padding: 16px 20px 22px 16px;
+    }
+
+    .card-photo {
+        width: min(320px, 100%);
+        min-height: 0;
+        aspect-ratio: 4 / 5;
+    }
+
+    .name {
+        font-size: 2.3rem;
+    }
+
+    .gallery,
+    .project-modal {
+        padding: 10px;
+    }
+
+    .gallery-panel {
+        padding: 0 14px 20px;
+    }
+
+    .gallery-head {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .gallery-head h2 {
+        font-size: 1.4rem;
+    }
+
+    .filters {
+        order: 3;
+    }
+
+    .masonry {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-auto-rows: 140px;
+        gap: 10px;
+    }
+
+    .dive-body {
+        padding: 20px 20px 4px;
+    }
+
+    .dive-title {
+        font-size: 1.7rem;
+    }
+
+    .dive-nav {
+        padding: 16px 20px 22px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* ═══════════════════════════════════════════
+   MOVING BACKGROUND (bg.js): rippling dot field
+   ═══════════════════════════════════════════ */
+.bg {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    width: 100%;
+    height: 100%;
+    display: block;
+    pointer-events: none;
+}
+
+/* ─── "Try the app" button in a project deep dive ─── */
+.dive-link {
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    z-index: 10;
+    gap: 8px;
+    margin: 0 0 20px;
+    padding: 9px 16px;
+    border-radius: 6px;
+    background: var(--ink);
+    color: var(--bg);
+    font-size: 0.92rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background-color 0.11s ease;
 }
 
-.modal-close-btn:hover {
-    background: #ffffff;
-    color: var(--accent-color);
-    transform: scale(1.08);
+.dive-link:hover {
+    background: #000;
 }
 
-.modal-close-btn svg {
+.dive-link span {
+    transition: transform 0.14s var(--ease);
+}
+
+.dive-link:hover span {
+    transform: translate(2px, -2px);
+}
+
+/* Hide the landing card while the gallery is open, so only the trail lines show through */
+.landing {
+    transition: opacity 0.17s ease, visibility 0s linear 0s;
+}
+
+body:has(.gallery.open) .landing {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.17s ease, visibility 0s linear 0.17s;
+}
+
+/* ═══════════════════════════════════════════
+   LIQUID GLASS: card and project gallery
+   The bending of the lines is drawn by bg.js (works in every browser);
+   this adds the glass itself: tint, light frost, bright rim and a sheen.
+   ═══════════════════════════════════════════ */
+.card,
+.gallery-panel {
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.12) 42%, rgba(255, 255, 255, 0.3)),
+        rgba(255, 255, 255, 0.34);
+    -webkit-backdrop-filter: blur(1.5px) saturate(1.4);
+    backdrop-filter: blur(1.5px) saturate(1.4);
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        inset 1px 0 0 rgba(255, 255, 255, 0.6),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.05),
+        inset 0 0 24px rgba(255, 255, 255, 0.35),
+        0 24px 60px -28px rgba(40, 30, 20, 0.35);
+}
+
+/* The gallery header keeps enough frost for the title and filters to read cleanly */
+.gallery-head {
+    background: linear-gradient(rgba(255, 255, 255, 0.82) 75%, rgba(255, 255, 255, 0));
+}
+
+/* Fully clear around the gallery so the bent lines are the focus */
+.gallery-backdrop {
+    background: transparent;
+}
+
+/* ═══════════════════════════════════════════
+   CLEARER GLASS, CLEAR WORDS
+   Much less tint so the glass reads as clear; bg.js fades the lines right behind each line
+   of text, and a faint paper-coloured glow keeps letter edges crisp.
+   ═══════════════════════════════════════════ */
+.card,
+.gallery-panel {
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0.04) 42%, rgba(255, 255, 255, 0.16)),
+        rgba(255, 255, 255, 0.14);
+    -webkit-backdrop-filter: saturate(1.4);
+    backdrop-filter: saturate(1.4);
+}
+
+.card :is(h1, p, li, .link-pill),
+.gallery-head h2 {
+    text-shadow: 0 0 3px rgba(250, 250, 248, 0.95), 0 0 8px rgba(250, 250, 248, 0.8);
+}
+
+/* Slightly heavier body text on glass for extra legibility */
+.tagline,
+.about li {
+    font-weight: 500;
+}
+
+.tagline {
+    color: #403E3B;
+}
+
+/* No divider lines between the list items */
+.about li,
+.about li:last-child {
+    border: 0;
+}
+
+/* Gallery tiles: liquid glass too (bg.js bends the lines under them). Photos still cover their tile. */
+.tile {
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.05) 45%, rgba(255, 255, 255, 0.2)),
+        rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        inset 1px 0 0 rgba(255, 255, 255, 0.6),
+        inset 0 0 18px rgba(255, 255, 255, 0.3),
+        0 10px 28px -18px rgba(40, 30, 20, 0.35);
+    transition: box-shadow 0.14s ease, border-color 0.14s ease;
+}
+
+.tile:hover {
+    border-color: rgba(255, 255, 255, 1);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 1),
+        inset 1px 0 0 rgba(255, 255, 255, 0.7),
+        inset 0 0 22px rgba(255, 255, 255, 0.45),
+        0 16px 36px -18px rgba(40, 30, 20, 0.45);
+}
+
+/* ═══════════════════════════════════════════
+   THEMES
+   ═══════════════════════════════════════════ */
+:root {
+    --topo-line: rgba(168, 72, 37, 0.2);
+    --topo-index: rgba(168, 72, 37, 0.38);
+    --halo: 250, 250, 248;          /* text glow on glass */
+    color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+    --bg: #121211;
+    --surface: #1C1C1B;
+    --ink: #F2F0EC;
+    --ink-2: #C3BFB8;
+    --ink-3: #8F8B85;
+    --line: #2C2B29;
+    --line-strong: #3B3A37;
+    --fill: #232321;
+    --accent: #E58457;
+    --topo-line: rgba(229, 132, 87, 0.22);
+    --topo-index: rgba(229, 132, 87, 0.42);
+    --halo: 18, 18, 17;
+    color-scheme: dark;
+}
+
+body {
+    transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+/* Text glow and readable tagline follow the theme */
+.card :is(h1, p, li, .link-pill),
+.gallery-head h2 {
+    text-shadow: 0 0 3px rgba(var(--halo), 0.95), 0 0 8px rgba(var(--halo), 0.8);
+}
+
+[data-theme="dark"] .tagline {
+    color: #D2CEC7;
+}
+
+/* Dark glass: smoky instead of milky */
+[data-theme="dark"] .card,
+[data-theme="dark"] .gallery-panel,
+[data-theme="dark"] .tile {
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.015) 42%, rgba(255, 255, 255, 0.05)),
+        rgba(18, 18, 17, 0.22);
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 1px 0 0 rgba(255, 255, 255, 0.08),
+        inset 0 0 24px rgba(255, 255, 255, 0.04),
+        0 24px 60px -28px rgba(0, 0, 0, 0.75);
+}
+
+[data-theme="dark"] .tile:hover {
+    border-color: rgba(255, 255, 255, 0.32);
+}
+
+[data-theme="dark"] .gallery-head {
+    background: linear-gradient(rgba(28, 28, 27, 0.86) 75%, rgba(28, 28, 27, 0));
+}
+
+[data-theme="dark"] .gallery-btn:hover,
+[data-theme="dark"] .dive-link:hover {
+    background: #fff;
+}
+
+[data-theme="dark"] .modal-backdrop {
+    background: rgba(0, 0, 0, 0.55);
+}
+
+/* ─── Toggle button ─── */
+.theme-toggle {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    z-index: 45;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.4);
+    -webkit-backdrop-filter: blur(6px) saturate(1.4);
+    backdrop-filter: blur(6px) saturate(1.4);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 8px 20px -12px rgba(40, 30, 20, 0.35);
+    color: var(--ink);
+    cursor: pointer;
+    transition: transform 0.12s var(--ease), background-color 0.12s ease;
+}
+
+.theme-toggle:hover {
+    transform: translateY(-1px);
+}
+
+.theme-toggle:active {
+    transform: scale(0.94);
+}
+
+.theme-toggle svg {
     width: 18px;
     height: 18px;
 }
 
-.modal-scroll-area {
-    overflow-y: auto;
-    max-height: 100%;
+.theme-toggle .icon-sun,
+[data-theme="dark"] .theme-toggle .icon-moon {
+    display: none;
 }
 
-.modal-image-container {
-    width: 100%;
-    height: 280px;
-    background: #1C1917;
-    position: relative;
-    overflow: hidden;
-}
-
-.modal-hero-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+[data-theme="dark"] .theme-toggle .icon-sun {
     display: block;
 }
 
-.modal-body-container {
-    padding: 28px 32px 36px 32px;
-}
-
-.modal-badge {
-    display: inline-block;
-    font-family: var(--font-mono);
-    font-size: 0.74rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    color: var(--accent-color);
-    margin-bottom: 8px;
-}
-
-.modal-title {
-    font-family: 'Orbitron', var(--font-serif);
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    letter-spacing: -0.01em;
-    margin-top: 0;
-    margin-bottom: 16px;
-}
-
-.modal-description p {
-    font-size: 1.05rem;
-    line-height: 1.65;
-    color: var(--text-secondary);
-    margin-bottom: 20px;
-}
-
-.modal-description ul {
-    list-style: none;
-    padding-left: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-top: 18px;
-}
-
-.modal-description li {
-    margin-bottom: 0;
-    padding-left: 0;
-}
-
-.modal-description a {
-    color: var(--accent-color);
-    background: rgba(168, 72, 37, 0.08);
-    border: 1px solid rgba(168, 72, 37, 0.2);
-    padding: 6px 14px;
-    border-radius: 6px;
-    font-family: var(--font-sans);
-    font-size: 0.88rem;
-    font-weight: 600;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    transition: all 0.2s ease;
-}
-
-.modal-description a:hover {
-    background: var(--accent-color);
-    color: #ffffff;
-    border-color: var(--accent-color);
-    transform: translateY(-2px);
-}
-
-/* Code & Blockquote */
-code {
-    font-family: var(--font-mono);
-    font-size: 0.88em;
-    background: rgba(0, 0, 0, 0.04);
-    padding: 2px 6px;
-    border-radius: 4px;
-    color: var(--text-primary);
-}
-
-blockquote {
-    border-left: 2px solid var(--border-color);
-    padding-left: 18px;
-    margin: 24px 0;
-    font-style: italic;
-    color: var(--text-muted);
+[data-theme="dark"] .theme-toggle {
+    border-color: rgba(255, 255, 255, 0.16);
+    background: rgba(28, 28, 27, 0.5);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 8px 20px -12px rgba(0, 0, 0, 0.6);
 }
 
 /* ═══════════════════════════════════════════
-   Mobile Responsive
+   FUNKY: fonts + emojis
    ═══════════════════════════════════════════ */
-@media (max-width: 768px) {
-    .layout {
-        flex-direction: column;
-        padding: 0 18px;
-    }
+:root {
+    --font: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --font-display: "Bricolage Grotesque", "DM Sans", -apple-system, system-ui, sans-serif;
+    --mono: "Space Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
 
-    .sidebar {
-        width: 100%;
-        height: auto;
-        position: relative;
-        padding: 40px 0 20px 0;
-        border-right: none;
-        border-bottom: 1px solid var(--border-color);
-    }
+body {
+    letter-spacing: -0.005em;
+}
 
-    .nav-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 16px;
-    }
+/* Chunky, slightly squished display type */
+.name {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 3.4rem;
+    letter-spacing: -0.045em;
+    font-variation-settings: "opsz" 96;
+}
 
-    .nav-list li {
-        margin-bottom: 0;
-    }
+.gallery-head h2,
+.dive-title,
+.tile-title {
+    font-family: var(--font-display);
+    font-weight: 750;
+    letter-spacing: -0.035em;
+}
 
-    .social-links {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 16px;
-        margin-top: 14px;
-    }
+/* Small labels in a typewriter mono */
+.location,
+.dive-where,
+.dive-facts dt,
+.dive-nav small,
+.filter-btn,
+.status {
+    font-family: var(--mono);
+    letter-spacing: 0.02em;
+}
 
-    .social-links li {
-        margin-bottom: 0;
-    }
+.location {
+    text-transform: none;
+    font-size: 0.78rem;
+}
 
-    .content-wrapper {
-        padding: 36px 0 60px 0;
-    }
+/* 👋 that waves on load and whenever you hover your name */
+.name::after {
+    content: "👋";
+    display: inline-block;
+    margin-left: 0.18em;
+    font-size: 0.72em;
+    transform-origin: 70% 75%;
+    animation: wave 1.2s ease-in-out 0.4s 2;
+}
 
-    .tab-content.projects-view {
-        margin-top: 0;
-    }
+.name:hover::after {
+    animation: wave 1.2s ease-in-out infinite;
+}
 
-    .site-title {
-        font-size: 2.3rem;
-    }
+@keyframes wave {
+    0%, 60%, 100% { transform: rotate(0deg); }
+    10%, 30% { transform: rotate(16deg); }
+    20% { transform: rotate(-8deg); }
+    40% { transform: rotate(-4deg); }
+    50% { transform: rotate(10deg); }
+}
 
-    .circular-gallery-wrapper {
-        height: 360px;
-    }
+/* List: emoji leads each line and hops on hover */
+.about li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1.04rem;
+}
 
-    .skills-columns-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 18px;
-    }
+.about .emoji {
+    display: inline-block;
+    width: 1.5em;
+    text-align: center;
+    font-size: 1.15em;
+    transition: transform 0.16s var(--ease);
+}
 
-    .modal-body-container {
-        padding: 20px 20px 28px 20px;
-    }
+.about li:hover .emoji {
+    transform: translateY(-3px) rotate(-10deg) scale(1.15);
+}
 
-    .modal-title {
-        font-size: 1.35rem;
+/* 🚀 lifts off on hover */
+.gallery-btn span {
+    display: inline-block;
+}
+
+.gallery-btn:hover span {
+    transform: translate(3px, -3px) rotate(8deg);
+}
+
+/* Emoji theme toggle */
+.theme-toggle .icon-moon,
+.theme-toggle .icon-sun {
+    font-size: 1.15rem;
+    line-height: 1;
+    transition: transform 0.2s var(--ease);
+}
+
+.theme-toggle:hover .icon-moon,
+.theme-toggle:hover .icon-sun {
+    transform: rotate(-20deg) scale(1.1);
+}
+
+/* Friendlier empty photo */
+.card-photo::after {
+    content: "📸 photo coming soon";
+    font-family: var(--mono);
+    font-size: 0.75rem;
+}
+
+@media (max-width: 760px) {
+    .name {
+        font-size: 2.6rem;
     }
 }
+
+/* Name: Righteous, rounded 70s display (single weight) */
+.name {
+    font-family: "Righteous", var(--font-display);
+    font-weight: 400;
+    font-size: 3.4rem;
+    letter-spacing: -0.01em;
+    line-height: 1.05;
+    font-variation-settings: normal;
+}
+
+@media (max-width: 760px) {
+    .name {
+        font-size: 2.6rem;
+    }
+}
+
+/* ═══════════════════════════════════════════
+   THEME SWITCH (replaces the old button)
+   ═══════════════════════════════════════════ */
+.theme-toggle { display: none; }
+
+.theme-switch {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    z-index: 45;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.switch-track {
+    position: relative;
+    display: block;
+    width: 64px;
+    height: 32px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: linear-gradient(180deg, #9fd3f5, #cfe9fb);
+    box-shadow:
+        inset 0 1px 3px rgba(0, 0, 0, 0.18),
+        0 0 0 1px rgba(255, 255, 255, 0.7),
+        0 6px 16px -8px rgba(40, 30, 20, 0.45);
+    transition: background 0.35s ease, box-shadow 0.35s ease;
+}
+
+/* Light (off): knob on the left, sun showing on the right.
+   Dark (on): knob slides right, moon and stars showing on the left. */
+.switch-sun,
+.switch-moon {
+    position: absolute;
+    top: 50%;
+    font-size: 15px;
+    line-height: 1;
+    transform: translateY(-50%);
+    transition: opacity 0.3s ease, transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+    user-select: none;
+}
+
+.switch-sun {
+    right: 8px;
+}
+
+.switch-moon {
+    left: 8px;
+    opacity: 0;
+    transform: translateY(-50%) rotate(-90deg) scale(0.5);
+}
+
+/* Tiny stars that twinkle in at night */
+.switch-star {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: #fff;
+    opacity: 0;
+    transform: scale(0);
+    transition: opacity 0.3s ease 0.1s, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s;
+}
+
+.switch-star.s1 { top: 7px; left: 27px; }
+.switch-star.s2 { top: 21px; left: 23px; width: 2px; height: 2px; }
+
+/* The knob: slides across with a springy overshoot and squishes a little on press */
+.switch-knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff, #f3f1ec 70%);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25), inset 0 -1px 2px rgba(0, 0, 0, 0.08);
+    transform: translateX(0);
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.18s ease, background 0.35s ease;
+}
+
+.theme-switch:active .switch-knob {
+    width: 32px;
+}
+
+.theme-switch:hover .switch-knob {
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3), inset 0 -1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.theme-switch:focus-visible {
+    outline: none;
+}
+
+.theme-switch:focus-visible .switch-track {
+    box-shadow:
+        inset 0 1px 3px rgba(0, 0, 0, 0.18),
+        0 0 0 2px var(--bg),
+        0 0 0 4px var(--accent);
+}
+
+/* ─── Dark: night sky, knob slides left onto the moon side ─── */
+[data-theme="dark"] .switch-track {
+    background: linear-gradient(180deg, #1b2440, #2c3a63);
+    box-shadow:
+        inset 0 1px 3px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.12),
+        0 6px 16px -8px rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="dark"] .switch-knob {
+    transform: translateX(32px);
+    background: radial-gradient(circle at 35% 30%, #e9e6df, #c9c5bd 70%);
+}
+
+/* Pressing in dark mode: the wider knob grows leftward, toward where it will travel */
+[data-theme="dark"] .theme-switch:active .switch-knob {
+    width: 32px;
+    transform: translateX(26px);
+}
+
+[data-theme="dark"] .switch-sun {
+    opacity: 0;
+    transform: translateY(-50%) rotate(90deg) scale(0.5);
+}
+
+[data-theme="dark"] .switch-moon {
+    opacity: 1;
+    transform: translateY(-50%) rotate(0deg) scale(1);
+}
+
+[data-theme="dark"] .switch-star {
+    opacity: 0.9;
+    transform: scale(1);
+}
+

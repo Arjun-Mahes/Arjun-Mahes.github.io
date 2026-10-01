@@ -1,650 +1,274 @@
-// Personal Website — Markdown Engine, Tabs & ReactBits CircularGallery
+// Arjun Mahes — landing card, project gallery and project deep dives.
+// All content lives in info.md; this file only reads and renders it.
 (function () {
-    const DEFAULT_MARKDOWN = `# Arjun Mahes
-Mechatronics engineering @UWaterloo.
+    const FILTERS = [['all', '✨ All'], ['ongoing', '🚧 Ongoing'], ['completed', '✅ Completed']];
+    // "Status: in progress" counts as ongoing; any other status (shipped, complete, prototype, 1st place) as completed
+    const stage = status => /progress/i.test(status) ? 'ongoing' : 'completed';
+    // Default mosaic rhythm for tiles without a "Size:" line; repeats every 8 projects
+    const SIZES = ['big', 'tall', 'wide', '', '', 'wide', 'tall', ''];
 
-## Socials
-- [GitHub](https://github.com)
-- [LinkedIn](https://linkedin.com)
-- [Email](mailto:hello@example.com)
+    const state = { name: '', tagline: '', socials: [], about: [], projects: [], filter: 'all', current: -1 };
 
-## Home
-### Some things about me:
-- 2A Mechatronics Engineering @UWaterloo
-- I'm currently building an exoskeleton that helps retrain motion in stroke patients.
-- I love to start endeavours I don't know anything about or don't have the skills to make and learn as I build. You learn so much more by figuring it out through the creative process rather than watching a course.
-- I love biking and exploring the city and the trails that surround it.
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const slugify = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-## Projects
-### Distributed Neural Engine
-![Project photo](https://picsum.photos/id/1015/900/1200)
-A lightweight inference runtime designed for low-power edge accelerators and WebGPU. Implements custom quantization kernels and zero-copy tensor streaming.
-- [GitHub Repository](https://github.com) / [Live Demo](https://example.com) / [Read Writeup](https://example.com)
-
-### Micro-Fluidics Simulation Sandbox
-![Project photo](https://picsum.photos/id/1018/900/1200)
-An interactive, GPU-accelerated simulation environment for modeling multi-phase laminar flow and droplet dynamics in real time.
-- [GitHub Repository](https://github.com) / [Research Paper](https://example.com)
-
-### Graphite & Monolith
-![Project photo](https://picsum.photos/id/1039/900/1200)
-A curated digital archive and visual essay exploring brutalist architecture, structural geometry, and graphite pencil studies.
-- [View Gallery](https://example.com) / [Case Study](https://example.com)
-
-### Latent Canvas
-![Project photo](https://picsum.photos/id/1043/900/1200)
-A minimal desktop application for fluid markdown note-taking with embedded mathematical notation and bidirectional linking.
-- [GitHub Repository](https://github.com) / [Download App](https://example.com)
-
-## Work
-### Engineering Intern - Soneil Spark (May 2026 – August 2026)
-- I helped build an assembly line and automate compliance testing for an AC/DC charger and battery manufacturing company. Also did a lot of R&D work with the cooling systems for their new battery trailer.
-
-### Hardware Prototyping Engineer — Hackerfab (Jan 2026 – May 2026)
-- I designed a custom PCB in KiCad to control the Argon gas flow for a home-built physical vapour deposition setup. I dug into the research and built the actual device using an ESP32, a stepper motor, and a pressure sensor.
-
-### Software Engineer — DietIQ (July 2025 - August 2025)
-- I formed datasets using public nutrition guidelines and implemented a RAG pipeline and a reinforcement fine tuned response grading system.
-`;
-
-    // Fallback curated gallery items
-    const DEFAULT_GALLERY_ITEMS = [
-        { image: 'https://picsum.photos/id/1015/900/1200', label: 'Canyon', link: '#' },
-        { image: 'https://picsum.photos/id/1018/900/1200', label: 'Ridgeline', link: '#' },
-        { image: 'https://picsum.photos/id/1039/900/1200', label: 'Falls', link: '#' },
-        { image: 'https://picsum.photos/id/1043/900/1200', label: 'Harbour', link: '#' },
-        { image: 'https://picsum.photos/id/1044/900/1200', label: 'Skyline', link: '#' }
-    ];
-
-    const state = {
-        name: 'Arjun Mahes',
-        tagline: '',
-        socials: [],
-        sections: {},
-        tabs: [],
-        activeTab: 'home',
-        projects: []
-    };
-
-    // ─── Social Icons ───
-    function getSocialIcon(label) {
-        const lower = label.toLowerCase();
-        if (lower.includes('github')) return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>`;
-        if (lower.includes('twitter') || lower.includes('x')) return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path></svg>`;
-        if (lower.includes('linkedin')) return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>`;
-        if (lower.includes('mail') || lower.includes('email')) return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>`;
-        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle></svg>`;
+    // ─── Tiny markdown: paragraphs, "- " lists, **bold**, *italic*, `code`, [links](url) ───
+    function inline(text) {
+        return esc(text)
+            .replace(/`([^`]+)`/g, '<code>$1</code>')
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.+?)\*/g, '<em>$1</em>')
+            .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, label, url) =>
+                `<a href="${url}"${/^https?:/.test(url) ? ' target="_blank" rel="noopener"' : ''}>${label}</a>`);
     }
 
-    // ─── Markdown Parser ───
-    function parseMarkdown(mdText) {
-        // Strip HTML comments so commented out sections in info.md are ignored
-        const cleanMd = mdText.replace(/<!--[\s\S]*?-->/g, '');
-        const lines = cleanMd.split('\n');
-        let currentSection = null;
-        let sectionBuffer = [];
-        let headerDone = false;
+    function markdown(src) {
+        const html = [];
+        let para = [], list = [];
+        const flush = () => {
+            if (para.length) html.push(`<p>${inline(para.join(' '))}</p>`);
+            if (list.length) html.push(`<ul>${list.map(li => `<li>${inline(li)}</li>`).join('')}</ul>`);
+            para = []; list = [];
+        };
+        for (const line of src.split('\n').map(l => l.trim())) {
+            const item = line.match(/^[-*]\s+(.*)/);
+            if (!line) flush();
+            else if (item) { if (para.length) flush(); list.push(item[1]); }
+            else { if (list.length) flush(); para.push(line); }
+        }
+        flush();
+        return html.join('');
+    }
 
-        state.sections = {};
-        state.tabs = [];
-        state.socials = [];
-        state.projects = [];
+    // ─── info.md → state ───
+    function parse(text) {
+        const bodies = {};
+        let section = null;
+        for (const line of text.replace(/\r\n?/g, '\n').replace(/<!--[\s\S]*?-->/g, '').split('\n')) {
+            if (!state.name && line.startsWith('# ')) state.name = line.slice(2).trim();
+            else if (line.startsWith('## ')) bodies[section = line.slice(3).trim().toLowerCase()] = [];
+            else if (section) bodies[section].push(line);
+            else if (line.trim()) state.tagline += (state.tagline ? ' ' : '') + line.trim();
+        }
 
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            if (line.startsWith('# ') && !headerDone) {
-                state.name = line.replace('# ', '').trim();
-                headerDone = true;
-                continue;
-            }
-            if (line.startsWith('## ')) {
-                if (currentSection) {
-                    saveSection(currentSection, sectionBuffer.join('\n'));
-                } else if (sectionBuffer.length > 0) {
-                    state.tagline = sectionBuffer.join('\n').trim();
+        const socials = (bodies.socials || bodies.contact || []).join('\n');
+        state.socials = [...socials.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)].map(([, label, url]) => ({ label, url }));
+        state.about = (bodies.home || []).map(l => l.trim().match(/^[-*]\s+(.*)/)).filter(Boolean).map(m => m[1]);
+        state.projects = parseProjects((bodies.projects || []).join('\n'));
+    }
+
+    // Each "### Title" block: an image line, "Key: value" lines, then free markdown for the deep dive
+    function parseProjects(body) {
+        return body.split(/^### /m).filter(c => c.trim()).map(chunk => {
+            const [title, ...lines] = chunk.split('\n');
+            const p = { title: title.trim(), image: '', where: '', status: '', tags: [], tools: '', summary: '', size: '', link: '', details: [] };
+            for (const line of lines) {
+                const img = line.match(/^!\[[^\]]*\]\(([^)]+)\)/);
+                const field = line.match(/^(where|status|tags|tools|summary|size|link):\s*(.*)$/i);
+                if (img && !p.image) p.image = img[1];
+                else if (field) {
+                    const key = field[1].toLowerCase();
+                    p[key] = key === 'tags' ? field[2].toLowerCase().split(',').map(t => t.trim()).filter(Boolean) : field[2].trim();
                 }
-                currentSection = line.replace('## ', '').trim();
-                sectionBuffer = [];
-                continue;
+                else p.details.push(line);
             }
-            sectionBuffer.push(line);
-        }
-        if (currentSection) saveSection(currentSection, sectionBuffer.join('\n'));
-    }
-
-    function saveSection(title, rawContent) {
-        const lowerTitle = title.toLowerCase();
-        if (lowerTitle === 'socials' || lowerTitle === 'contact' || lowerTitle === 'find me on') {
-            const re = /\[([^\]]+)\]\(([^)]+)\)/g;
-            let m;
-            while ((m = re.exec(rawContent)) !== null) state.socials.push({ label: m[1], url: m[2] });
-        } else if (lowerTitle === 'skills') {
-            // Ignore standalone skills section
-        } else {
-            const slug = lowerTitle.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-            state.sections[slug] = { title, slug, content: rawContent.trim() };
-            state.tabs.push(slug);
-            if (slug === 'projects') state.projects = parseProjects(rawContent);
-        }
-    }
-
-    function parseProjects(rawContent) {
-        const projects = [];
-        rawContent.split(/^### /m).filter(c => c.trim()).forEach(chunk => {
-            const lines = chunk.split('\n');
-            const title = lines[0].trim();
-            let image = null;
-            const bodyLines = [];
-            for (let i = 1; i < lines.length; i++) {
-                const imgMatch = lines[i].match(/^!\[([^\]]*)\]\(([^)]+)\)/);
-                if (imgMatch && !image) image = imgMatch[2];
-                else bodyLines.push(lines[i]);
-            }
-            projects.push({ title, image, body: bodyLines.join('\n').trim() });
+            p.details = p.details.join('\n').trim();
+            p.slug = slugify(p.title);
+            return p;
         });
-        return projects;
     }
 
-    // ─── Frame Renderer ───
-    function renderFrame() {
-        document.getElementById('site-name').textContent = state.name;
+    // ─── Small pieces ───
+    function socialIcon(label) {
+        const l = label.toLowerCase();
+        const path = l.includes('github')
+            ? '<path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>'
+            : l.includes('linkedin')
+                ? '<path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>'
+                : l.includes('mail')
+                    ? '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>'
+                    : '<path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/>';
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
+    }
+
+    function statusPill(status) {
+        if (!status) return '';
+        const kind = /progress/i.test(status) ? 'progress' : /place|win|award/i.test(status) ? 'win' : /proto/i.test(status) ? 'proto' : 'done';
+        return `<span class="status status--${kind}"><i></i>${esc(status)}</span>`;
+    }
+
+    // ─── Landing card ───
+    function renderLanding() {
+        $('name').textContent = state.name;
         document.title = state.name;
-
-        const taglineEl = document.getElementById('site-tagline');
-        if (state.tagline) {
-            taglineEl.innerHTML = marked.parse(state.tagline);
-            taglineEl.style.display = 'block';
-        } else taglineEl.style.display = 'none';
-
-        const navList = document.getElementById('nav-list');
-        navList.innerHTML = '';
-        state.tabs.forEach(slug => {
-            const sec = state.sections[slug];
-            const li = document.createElement('li');
-            const a = document.createElement('a');
-            a.href = `#${slug}`;
-            a.className = 'nav-link' + (state.activeTab === slug ? ' active' : '');
-            a.textContent = sec.title;
-            a.addEventListener('click', e => { e.preventDefault(); setActiveTab(slug); });
-            li.appendChild(a);
-            navList.appendChild(li);
-        });
-
-        const socialList = document.getElementById('social-list');
-        socialList.innerHTML = '';
-        state.socials.forEach(s => {
-            const li = document.createElement('li');
-            const a = document.createElement('a');
-            a.href = s.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
-            a.className = 'social-link'; a.setAttribute('aria-label', s.label); a.setAttribute('title', s.label);
-            a.innerHTML = getSocialIcon(s.label);
-            li.appendChild(a); socialList.appendChild(li);
-        });
-
-        renderActiveTabContent();
+        $('tagline').innerHTML = inline(state.tagline);
+        // A leading emoji gets its own span so it can bounce on hover
+        $('about').innerHTML = state.about.map(item => {
+            const m = item.match(/^(\p{Extended_Pictographic}\S*)\s+(.*)$/u);
+            return m ? `<li><span class="emoji" aria-hidden="true">${m[1]}</span>${inline(m[2])}</li>` : `<li>${inline(item)}</li>`;
+        }).join('');
+        $('links').innerHTML = state.socials.map(s => {
+            const external = /^https?:/.test(s.url) ? ' target="_blank" rel="noopener noreferrer"' : '';
+            return `<a class="link-pill" href="${esc(s.url)}"${external}>${socialIcon(s.label)}<span>${esc(s.label)}</span></a>`;
+        }).join('');
     }
 
-    function setActiveTab(slug) {
-        if (!state.sections[slug]) slug = state.tabs[0] || 'home';
-        state.activeTab = slug;
-        window.location.hash = `#${slug}`;
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.classList.toggle('active', link.getAttribute('href') === `#${slug}`);
-        });
-        renderActiveTabContent();
+    // ─── Gallery ───
+    function renderGallery() {
+        $('filters').innerHTML = FILTERS.map(([id, label]) =>
+            `<button type="button" class="filter-btn" data-filter="${id}" aria-pressed="${state.filter === id}">${label}</button>`).join('');
+
+        $('masonry').innerHTML = state.projects.map((p, i) => {
+            const size = p.size || SIZES[i % SIZES.length];
+            // Just the image; the title appears on hover, everything else is in the deep dive
+            return `
+                <button type="button" class="tile${size ? ` tile--${size}` : ''}" data-glass data-index="${i}"
+                        data-stage="${stage(p.status)}" style="--d:${i}" aria-label="${esc(p.title)}">
+                    ${p.image ? `<img src="${esc(p.image)}" alt="" loading="lazy" onerror="this.remove()">` : ''}
+                    <span class="tile-title" aria-hidden="true">${esc(p.title)}</span>
+                </button>`;
+        }).join('');
+        applyFilter();
     }
 
-    function renderActiveTabContent() {
-        const container = document.getElementById('tab-content');
-        const profileHeader = document.getElementById('profile-header');
-        const section = state.sections[state.activeTab];
-        if (profileHeader) profileHeader.style.display = (state.activeTab === 'home') ? 'block' : 'none';
-        if (!section) { container.innerHTML = '<p>No content found.</p>'; return; }
+    function applyFilter() {
+        $('filters').querySelectorAll('.filter-btn').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.filter === state.filter)));
+        $('masonry').querySelectorAll('.tile').forEach(tile => {
+            tile.hidden = state.filter !== 'all' && tile.dataset.stage !== state.filter;
+        });
+    }
 
-        container.className = `tab-content ${state.activeTab}-view`;
-        if (state.activeTab === 'projects') {
-            renderCircularProjectsGallery(container);
+    // ─── Overlays ───
+    const isOpen = id => $(id).classList.contains(id === 'gallery' ? 'open' : 'modal-open');
+    const syncLock = () => document.documentElement.classList.toggle('locked', isOpen('gallery') || isOpen('deep-dive'));
+
+    function openGallery() {
+        $('gallery').classList.add('open');
+        $('gallery').setAttribute('aria-hidden', 'false');
+        $('gallery').querySelector('.gallery-panel').scrollTop = 0;
+        history.replaceState(null, '', '#projects');
+        syncLock();
+        $('gallery').querySelector('.close-btn').focus();
+    }
+
+    function closeGallery() {
+        $('gallery').classList.remove('open');
+        $('gallery').setAttribute('aria-hidden', 'true');
+        history.replaceState(null, '', location.pathname + location.search);
+        syncLock();
+        $('open-gallery').focus();
+    }
+
+    function openDive(i) {
+        const n = state.projects.length;
+        const p = state.projects[(i + n) % n];
+        state.current = (i + n) % n;
+
+        $('dive-hero').innerHTML = p.image
+            ? `<img src="${esc(p.image)}" alt="${esc(p.title)}" onerror="this.remove()">`
+            : '';
+        $('dive-where').textContent = p.where;
+        $('dive-title').textContent = p.title;
+        $('dive-facts').innerHTML = [
+            p.status && ['Status', statusPill(p.status)],
+            p.tools && ['Tools', esc(p.tools)],
+            p.tags.length && ['Areas', esc(p.tags.join(', '))]
+        ].filter(Boolean).map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+        $('dive-summary').textContent = p.summary;
+        // "Link: [Label](url)" shows as a button under the summary
+        const link = p.link.match(/^\[([^\]]+)\]\(([^)\s]+)\)$/);
+        $('dive-link').innerHTML = link
+            ? `<a class="dive-link" href="${esc(link[2])}" target="_blank" rel="noopener">${esc(link[1])} <span aria-hidden="true">↗</span></a>`
+            : '';
+        $('dive-details').innerHTML = markdown(p.details);
+
+        const prev = state.projects[(state.current - 1 + n) % n];
+        const next = state.projects[(state.current + 1) % n];
+        $('dive-prev').querySelector('span').textContent = prev.title;
+        $('dive-next').querySelector('span').textContent = next.title;
+
+        $('deep-dive').classList.add('modal-open');
+        $('deep-dive').setAttribute('aria-hidden', 'false');
+        $('dive-scroll').scrollTop = 0;
+        history.replaceState(null, '', `#projects/${p.slug}`);
+        syncLock();
+        $('deep-dive').querySelector('.dive-close').focus();
+    }
+
+    function closeDive() {
+        $('deep-dive').classList.remove('modal-open');
+        $('deep-dive').setAttribute('aria-hidden', 'true');
+        history.replaceState(null, '', isOpen('gallery') ? '#projects' : location.pathname + location.search);
+        syncLock();
+        $('masonry').querySelector(`.tile[data-index="${state.current}"]`)?.focus();
+    }
+
+    // ─── Light / dark theme ───
+    function syncThemeButton() {
+        const dark = document.documentElement.dataset.theme === 'dark';
+        $('theme-toggle').setAttribute('aria-checked', String(dark));
+    }
+
+    function toggleTheme() {
+        const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = next;
+        try { localStorage.setItem('theme', next); } catch (e) { /* private mode: just don't remember */ }
+        syncThemeButton();
+    }
+
+    // ─── Events ───
+    function bind() {
+        $('theme-toggle').addEventListener('click', toggleTheme);
+        syncThemeButton();
+        $('open-gallery').addEventListener('click', openGallery);
+        document.querySelectorAll('[data-close-gallery]').forEach(el => el.addEventListener('click', closeGallery));
+        document.querySelectorAll('[data-close-dive]').forEach(el => el.addEventListener('click', closeDive));
+        $('dive-prev').addEventListener('click', () => openDive(state.current - 1));
+        $('dive-next').addEventListener('click', () => openDive(state.current + 1));
+
+        $('filters').addEventListener('click', e => {
+            const btn = e.target.closest('.filter-btn');
+            if (btn) { state.filter = btn.dataset.filter; applyFilter(); }
+        });
+        $('masonry').addEventListener('click', e => {
+            const tile = e.target.closest('.tile');
+            if (tile) openDive(Number(tile.dataset.index));
+        });
+
+        window.addEventListener('keydown', e => {
+            if (isOpen('deep-dive')) {
+                if (e.key === 'Escape') closeDive();
+                else if (e.key === 'ArrowLeft') openDive(state.current - 1);
+                else if (e.key === 'ArrowRight') openDive(state.current + 1);
+            } else if (isOpen('gallery') && e.key === 'Escape') closeGallery();
+        });
+    }
+
+    // Links: /#projects opens the gallery, /#projects/<slug> opens that project
+    function openFromHash() {
+        const [section, slug] = location.hash.slice(1).split('/');
+        if (section !== 'projects') return;
+        openGallery();
+        const i = state.projects.findIndex(p => p.slug === slug);
+        if (i >= 0) openDive(i);
+    }
+
+    async function load() {
+        bind();
+        try {
+            const r = await fetch('info.md', { cache: 'no-cache' });
+            if (!r.ok) throw new Error(r.status);
+            parse(await r.text());
+        } catch {
+            $('tagline').innerHTML = `Couldn't load <code>info.md</code>. Serve this folder over HTTP
+                (<code>python -m http.server</code>) instead of opening the file directly.`;
             return;
         }
-
-        // Clean up 3D scene if leaving projects
-        disposeCircularGallery();
-
-        container.innerHTML = marked.parse(section.content);
+        renderLanding();
+        renderGallery();
+        openFromHash();
     }
 
-    // ═══════════════════════════════════════════
-    //  REACTBITS CIRCULAR GALLERY (Three.js WebGL)
-    // ═══════════════════════════════════════════
-
-    let galleryInstance = null;
-
-    function disposeCircularGallery() {
-        if (galleryInstance) {
-            galleryInstance.destroy();
-            galleryInstance = null;
-        }
-    }
-
-    function renderCircularProjectsGallery(container) {
-        disposeCircularGallery();
-
-        // Extract items from markdown projects
-        let galleryItems = state.projects.map((proj, idx) => {
-            const fallback = DEFAULT_GALLERY_ITEMS[idx % DEFAULT_GALLERY_ITEMS.length];
-            return {
-                image: (proj.image && !proj.image.includes('placeholder.svg')) ? proj.image : fallback.image,
-                label: proj.title,
-                body: proj.body,
-                project: proj
-            };
-        });
-
-        if (galleryItems.length === 0) {
-            galleryItems = DEFAULT_GALLERY_ITEMS.map((it) => ({
-                ...it,
-                body: `Detailed project information for ${it.label}.\n- [GitHub Repository](#) / [Live Demo](#)`,
-                project: { title: it.label, image: it.image, body: `Project details for ${it.label}.` }
-            }));
-        }
-
-        // If fewer than 6 items, repeat to form a rich continuous loop
-        let items = [...galleryItems];
-        if (items.length > 0 && items.length < 6) {
-            items = [...items, ...items];
-        }
-
-        container.innerHTML = `
-        <div class="circular-gallery-section">
-            <div class="circular-gallery-wrapper" style="height: 580px; position: relative; margin: 0 auto;">
-                <div class="circular-gallery-mount" id="circular-gallery-mount"></div>
-                
-                <!-- Enlarged Project Modal View -->
-                <div class="project-modal" id="project-modal" aria-hidden="true">
-                    <div class="modal-backdrop" id="modal-backdrop"></div>
-                    <div class="modal-card" id="modal-card">
-                        <button class="modal-close-btn" id="modal-close-btn" aria-label="Close details">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                        </button>
-                        
-                        <div class="modal-scroll-area">
-                            <div class="modal-image-container" id="modal-image-container">
-                                <img src="" alt="" class="modal-hero-img" id="modal-hero-img" />
-                            </div>
-                            
-                            <div class="modal-body-container">
-                                <span class="modal-badge">PROJECT SPOTLIGHT</span>
-                                <h3 class="modal-title" id="modal-title"></h3>
-                                <div class="modal-description" id="modal-description"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>`;
-
-        const mount = container.querySelector('#circular-gallery-mount');
-        if (!mount || !window.THREE) return;
-
-        // Initialize Circular Gallery with ReactBits Props
-        galleryInstance = new CircularGallery(mount, {
-            items: items,
-            bend: 3,
-            textColor: '#1C1917',
-            borderRadius: 0.05,
-            scrollEase: 0.02,
-            fontUrl: 'https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap',
-            font: 'bold 28px Orbitron, -apple-system, sans-serif',
-            onItemClick: (item) => openProjectModal(item)
-        });
-
-        // Modal event handlers
-        const closeBtn = container.querySelector('#modal-close-btn');
-        const backdrop = container.querySelector('#modal-backdrop');
-        if (closeBtn) closeBtn.addEventListener('click', closeProjectModal);
-        if (backdrop) backdrop.addEventListener('click', closeProjectModal);
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeProjectModal();
-        });
-    }
-
-    function openProjectModal(item) {
-        const modal = document.getElementById('project-modal');
-        const heroImg = document.getElementById('modal-hero-img');
-        const titleEl = document.getElementById('modal-title');
-        const descEl = document.getElementById('modal-description');
-
-        if (!modal) return;
-
-        heroImg.src = item.image;
-        heroImg.alt = item.label;
-        titleEl.textContent = item.label;
-        descEl.innerHTML = marked.parse(item.body || '');
-
-        modal.classList.add('modal-open');
-        modal.setAttribute('aria-hidden', 'false');
-    }
-
-    function closeProjectModal() {
-        const modal = document.getElementById('project-modal');
-        if (modal) {
-            modal.classList.remove('modal-open');
-            modal.setAttribute('aria-hidden', 'true');
-        }
-    }
-
-    // ─── Circular Gallery Class (ReactBits Architecture) ───
-    class CircularGallery {
-        constructor(container, options = {}) {
-            this.container = container;
-            this.items = options.items || [];
-            this.bend = options.bend !== undefined ? options.bend : 3;
-            this.textColor = options.textColor || '#1C1917';
-            this.borderRadius = options.borderRadius !== undefined ? options.borderRadius : 0.05;
-            this.scrollEase = options.scrollEase || 0.02;
-            this.font = options.font || 'bold 28px Orbitron';
-            this.onItemClick = options.onItemClick || (() => {});
-
-            this.scroll = { current: 0, target: 0, last: 0, velocity: 0 };
-            this.isDragging = false;
-            this.dragStart = { x: 0, scroll: 0 };
-            this.dragDistance = 0;
-            this.raycaster = new THREE.Raycaster();
-            this.mouse = new THREE.Vector2();
-
-            this.init();
-        }
-
-        init() {
-            const width = this.container.clientWidth || 900;
-            const height = this.container.clientHeight || 580;
-
-            // 1. Scene & Camera
-            this.scene = new THREE.Scene();
-            this.camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
-            this.camera.position.set(0, 0, 7.0);
-
-            // 2. WebGL Renderer
-            this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            this.renderer.setSize(width, height);
-            this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            this.container.appendChild(this.renderer.domElement);
-
-            // 3. Create Curved Gallery Meshes
-            this.createMeshes();
-
-            // 4. Attach Event Listeners
-            this.bindEvents();
-
-            // 5. Start Animation Loop
-            this.animate = this.animate.bind(this);
-            this.animId = requestAnimationFrame(this.animate);
-        }
-
-        createMeshes() {
-            this.groups = [];
-            const count = this.items.length;
-            this.itemWidth = 2.15;
-            this.itemHeight = 2.95;
-            this.gap = 0.7;
-            this.totalWidth = count * (this.itemWidth + this.gap);
-            this.radius = (this.totalWidth / (Math.PI * 2)) * (3 / Math.max(0.5, Math.abs(this.bend)));
-
-            // Custom Shader Material with Rounded Corners for the Card Image
-            const vertexShader = `
-                varying vec2 vUv;
-                void main() {
-                    vUv = uv;
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            `;
-
-            const fragmentShader = `
-                uniform sampler2D uTexture;
-                uniform float uRadius;
-                uniform vec2 uAspect;
-                varying vec2 vUv;
-
-                // Signed distance field for rounded rectangle
-                float roundedBox(vec2 p, vec2 b, float r) {
-                    vec2 d = abs(p) - b + vec2(r);
-                    return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)) - r;
-                }
-
-                void main() {
-                    vec2 p = (vUv - 0.5) * uAspect;
-                    vec2 b = 0.5 * uAspect;
-                    float d = roundedBox(p, b, uRadius * min(uAspect.x, uAspect.y));
-                    
-                    // Smooth antialiased border alpha
-                    float alpha = 1.0 - smoothstep(0.0, 0.008, d);
-                    if (alpha < 0.01) discard;
-
-                    vec4 texColor = texture2D(uTexture, vUv);
-                    gl_FragColor = vec4(texColor.rgb, texColor.a * alpha);
-                }
-            `;
-
-            const imageGeo = new THREE.PlaneGeometry(this.itemWidth, this.itemHeight, 32, 32);
-            const labelGeo = new THREE.PlaneGeometry(this.itemWidth * 1.5, 0.55);
-
-            this.items.forEach((item, index) => {
-                const group = new THREE.Group();
-                group.userData = { index: index, item: item };
-
-                // ── 1. Image Mesh ──
-                const textureLoader = new THREE.TextureLoader();
-                textureLoader.setCrossOrigin('anonymous');
-                const imageTexture = textureLoader.load(item.image, (tex) => {
-                    tex.minFilter = THREE.LinearFilter;
-                    tex.magFilter = THREE.LinearFilter;
-                    tex.generateMipmaps = false;
-                });
-
-                const imageMat = new THREE.ShaderMaterial({
-                    vertexShader,
-                    fragmentShader,
-                    uniforms: {
-                        uTexture: { value: imageTexture },
-                        uRadius: { value: this.borderRadius },
-                        uAspect: { value: new THREE.Vector2(this.itemWidth, this.itemHeight) }
-                    },
-                    transparent: true,
-                    side: THREE.DoubleSide
-                });
-
-                const imageMesh = new THREE.Mesh(imageGeo, imageMat);
-                imageMesh.position.set(0, 0.32, 0); // elevated above label
-                group.add(imageMesh);
-
-                // ── 2. External Text Label Mesh (Outside & Beneath Card) ──
-                const labelTexture = this.createLabelTexture(item.label);
-                const labelMat = new THREE.MeshBasicMaterial({
-                    map: labelTexture,
-                    transparent: true,
-                    side: THREE.DoubleSide
-                });
-
-                const labelMesh = new THREE.Mesh(labelGeo, labelMat);
-                labelMesh.position.set(0, -1.6, 0); // directly underneath card
-                group.add(labelMesh);
-
-                // ── 3. Raycast Hit Collider ──
-                const hitGeo = new THREE.PlaneGeometry(this.itemWidth, this.itemHeight + 0.75);
-                const hitMat = new THREE.MeshBasicMaterial({ visible: false });
-                const hitMesh = new THREE.Mesh(hitGeo, hitMat);
-                hitMesh.position.set(0, 0, 0.05);
-                hitMesh.userData = { isHit: true };
-                group.add(hitMesh);
-
-                this.scene.add(group);
-                this.groups.push(group);
-            });
-        }
-
-        createLabelTexture(labelText) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 640;
-            canvas.height = 140;
-            const ctx = canvas.getContext('2d');
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Draw label centered underneath card in crisp black / dark text
-            ctx.fillStyle = this.textColor;
-            ctx.font = this.font;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.08)';
-            ctx.shadowBlur = 2;
-            ctx.shadowOffsetY = 1;
-            ctx.fillText(labelText, canvas.width / 2, canvas.height / 2);
-
-            const texture = new THREE.CanvasTexture(canvas);
-            texture.minFilter = THREE.LinearFilter;
-            texture.magFilter = THREE.LinearFilter;
-            texture.generateMipmaps = false;
-            return texture;
-        }
-
-        bindEvents() {
-            this.onMouseDown = this.onMouseDown.bind(this);
-            this.onMouseMove = this.onMouseMove.bind(this);
-            this.onMouseUp = this.onMouseUp.bind(this);
-            this.onWheel = this.onWheel.bind(this);
-            this.onResize = this.onResize.bind(this);
-
-            const dom = this.renderer.domElement;
-            dom.addEventListener('pointerdown', this.onMouseDown);
-            window.addEventListener('pointermove', this.onMouseMove);
-            window.addEventListener('pointerup', this.onMouseUp);
-            dom.addEventListener('wheel', this.onWheel, { passive: false });
-            window.addEventListener('resize', this.onResize);
-        }
-
-        onMouseDown(e) {
-            this.isDragging = true;
-            this.dragStart.x = e.clientX;
-            this.dragStart.scroll = this.scroll.target;
-            this.dragDistance = 0;
-        }
-
-        onMouseMove(e) {
-            if (!this.isDragging) return;
-            const deltaX = (e.clientX - this.dragStart.x) * 0.0075;
-            this.scroll.target = this.dragStart.scroll - deltaX;
-            this.dragDistance += Math.abs(e.clientX - this.dragStart.x);
-        }
-
-        onMouseUp(e) {
-            if (this.isDragging) {
-                if (this.dragDistance < 8) {
-                    this.checkClick(e);
-                }
-            }
-            this.isDragging = false;
-        }
-
-        checkClick(e) {
-            const rect = this.renderer.domElement.getBoundingClientRect();
-            this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-            this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
-            this.raycaster.setFromCamera(this.mouse, this.camera);
-            const intersects = this.raycaster.intersectObjects(this.scene.children, true);
-
-            if (intersects.length > 0) {
-                let obj = intersects[0].object;
-                while (obj && !obj.userData.item && obj.parent) {
-                    obj = obj.parent;
-                }
-                if (obj && obj.userData && obj.userData.item) {
-                    this.onItemClick(obj.userData.item);
-                }
-            }
-        }
-
-        onWheel(e) {
-            e.preventDefault();
-            this.scroll.target += e.deltaY * 0.0022;
-        }
-
-        onResize() {
-            if (!this.container || !this.renderer || !this.camera) return;
-            const width = this.container.clientWidth;
-            const height = this.container.clientHeight;
-            this.camera.aspect = width / height;
-            this.camera.updateProjectionMatrix();
-            this.renderer.setSize(width, height);
-        }
-
-        animate() {
-            if (!this.renderer) return;
-            this.animId = requestAnimationFrame(this.animate);
-
-            // Smooth Lerp on scroll
-            this.scroll.current += (this.scroll.target - this.scroll.current) * this.scrollEase;
-            this.scroll.velocity = this.scroll.current - this.scroll.last;
-            this.scroll.last = this.scroll.current;
-
-            // Update mesh positions along the curved 3D cylinder
-            const count = this.groups.length;
-            const spacing = this.itemWidth + this.gap;
-
-            this.groups.forEach((group, i) => {
-                let x = (i * spacing - this.scroll.current * spacing) % this.totalWidth;
-                if (x < -this.totalWidth / 2) x += this.totalWidth;
-                if (x > this.totalWidth / 2) x -= this.totalWidth;
-
-                const theta = (x / this.totalWidth) * Math.PI * 2 * (this.bend / 3);
-
-                group.position.x = Math.sin(theta) * this.radius;
-                group.position.z = (Math.cos(theta) - 1.0) * this.radius;
-                group.rotation.y = theta;
-            });
-
-            this.renderer.render(this.scene, this.camera);
-        }
-
-        destroy() {
-            if (this.animId) cancelAnimationFrame(this.animId);
-            const dom = this.renderer.domElement;
-            dom.removeEventListener('pointerdown', this.onMouseDown);
-            window.removeEventListener('pointermove', this.onMouseMove);
-            window.removeEventListener('pointerup', this.onMouseUp);
-            dom.removeEventListener('wheel', this.onWheel);
-            window.removeEventListener('resize', this.onResize);
-
-            if (dom.parentNode) dom.parentNode.removeChild(dom);
-            this.renderer.dispose();
-            this.renderer = null;
-            this.scene = null;
-            this.camera = null;
-        }
-    }
-
-    // ─── Hash Sync & Load ───
-    function syncFromHash() {
-        const hash = window.location.hash.replace('#', '').toLowerCase();
-        if (hash && state.sections[hash]) state.activeTab = hash;
-        else if (state.tabs.length > 0) state.activeTab = state.tabs[0];
-    }
-
-    async function loadContent() {
-        let mdText = DEFAULT_MARKDOWN;
-        try {
-            const r = await fetch('info.md?t=' + Date.now());
-            if (r.ok) mdText = await r.text();
-        } catch (e) { console.warn('Using bundled content.', e); }
-
-        parseMarkdown(mdText);
-        syncFromHash();
-        renderFrame();
-    }
-
-    window.addEventListener('hashchange', () => { syncFromHash(); setActiveTab(state.activeTab); });
-    window.addEventListener('DOMContentLoaded', loadContent);
+    document.addEventListener('DOMContentLoaded', load);
 })();
