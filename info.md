@@ -68,11 +68,12 @@ Summary: A wearable robotic extra thumb, controlled by forearm EMG or by pressin
 - Designed two wireless transmitter PCBs for dual-mode proportional control: an ESP32-based EMG amplifier with signal filtering, and an nRF52810 dual-FSR shoe that turns toe pressure into multi-axis joint movement.
 
 ### EMG Amplifier PCB
-![](images/projects/emg-amplifier.jpg)
+![](images/projects/emg-amplifier.png)
 Where: Personal
 Status: complete
 Tags: hardware, firmware
 Tools: KiCad, ESP32-S3, Analog design
+Size: wide
 Summary: A custom board that amplifies and filters muscle signals, then digitizes them on an ESP32-S3 and streams them wirelessly.
 - Rebuilt the Advancer Technologies EMG analog chain in KiCad: instrumentation amplifier, gain stages, a ~106 Hz high-pass, full-wave rectifier and a ~2 Hz envelope low-pass with a trimmable final gain.
 - Added an ESP32-S3 to sample the envelope and broadcast it wirelessly to another microcontroller, with native USB-C for programming and a buck converter for the 3.3 V rail.
@@ -117,6 +118,7 @@ Status: 1st place
 Tags: software
 Tools: COMSOL, Python, SciPy
 Summary: Optimized trapped-ion quantum computer geometries in COMSOL. Our surface trap doubled trap depth and took 1st place.
+Link: [View the study](https://www.tqetchs.xyz/)
 - With a team of 4, simulated and optimized Paul and surface trap geometries in COMSOL Multiphysics.
 - Built a Python–COMSOL pipeline using parameter sweeps and SciPy optimizers (Nelder-Mead, SLSQP) to tune geometry and voltages against trap depth, symmetry and RF power.
 - Designed a novel surface-electrode trap with 2x the trap depth and over 30,000x lower estimated RF power than the baseline rod design.
