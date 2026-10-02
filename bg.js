@@ -1,6 +1,7 @@
 // Background: topographic contour lines, like a trail map, slowly shifting.
 // The cursor is a hill: the terrain rises under it, so the lines ring around it and follow it.
 // Drawn with marching squares over Perlin noise; every fifth line is a darker "index contour".
+// Elements marked data-magnify (the gallery tiles) act as magnifying lenses over the map.
 (function () {
     const SETTINGS = {
         cell: 10,            // grid spacing in px; smaller = smoother lines, more work
@@ -11,6 +12,8 @@
         hillHeight: 0.9,     // how tall the cursor hill is
         hillSize: 95,        // px: how wide it is
         follow: 0.25,        // 0..1: how quickly the hill catches up with the cursor
+        magnify: 1.8,        // how much the tiles enlarge the map beneath them
+        lensCurve: 0.45,     // 0 = flat zoom; higher = more convex (strongest in the middle, easing at the edges)
         // Line colours come from the CSS variables --topo-line / --topo-index, so they follow the theme
     };
 
@@ -71,15 +74,31 @@
 
     let width = 0, height = 0, cols = 0, rows = 0, field = new Float32Array(0);
 
-    // Re-read the line colours whenever the theme changes
+    // Line colours follow the theme. When it changes they blend over ~0.5 s instead of jumping.
+    const parse = c => (c.match(/[\d.]+/g) || [168, 72, 37, 0.2]).map(Number).concat(1).slice(0, 4);
     const colours = { line: '', index: '' };
+    const colourNow = { line: null, index: null };
+    const colourGoal = { line: null, index: null };
     function readColours() {
         const css = getComputedStyle(document.documentElement);
-        colours.line = css.getPropertyValue('--topo-line').trim() || 'rgba(168, 72, 37, 0.2)';
-        colours.index = css.getPropertyValue('--topo-index').trim() || 'rgba(168, 72, 37, 0.38)';
+        colourGoal.line = parse(css.getPropertyValue('--topo-line').trim() || 'rgba(168, 72, 37, 0.2)');
+        colourGoal.index = parse(css.getPropertyValue('--topo-index').trim() || 'rgba(168, 72, 37, 0.38)');
+        if (!colourNow.line) { colourNow.line = [...colourGoal.line]; colourNow.index = [...colourGoal.index]; }
+        blendColours(1);
+    }
+    function blendColours(amount) {
+        for (const k of ['line', 'index']) {
+            colourNow[k] = colourNow[k].map((v, i) => v + (colourGoal[k][i] - v) * amount);
+            const [r, g, b, a] = colourNow[k];
+            colours[k] = `rgba(${r | 0}, ${g | 0}, ${b | 0}, ${a.toFixed(3)})`;
+        }
     }
     readColours();
-    new MutationObserver(readColours).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    new MutationObserver(() => {
+        const css = getComputedStyle(document.documentElement);
+        colourGoal.line = parse(css.getPropertyValue('--topo-line').trim());
+        colourGoal.index = parse(css.getPropertyValue('--topo-index').trim());
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     const low = -1.3;
 
     // The hill eases toward the cursor and sinks away when the cursor leaves the page
@@ -98,6 +117,33 @@
         field = new Float32Array(cols * rows);
     }
 
+    // Visible magnifying tiles as rectangles
+    function lenses() {
+        const list = [];
+        for (const el of document.querySelectorAll('[data-magnify]')) {
+            if (el.hidden || (el.checkVisibility && !el.checkVisibility({ visibilityProperty: true }))) continue;
+            const r = el.getBoundingClientRect();
+            if (r.width < 20 || r.height < 20 || r.bottom < 0 || r.top > height) continue;
+            list.push({ x0: r.left, y0: r.top, x1: r.right, y1: r.bottom,
+                        cx: (r.left + r.right) / 2, cy: (r.top + r.bottom) / 2,
+                        rad: Math.hypot(r.width, r.height) / 2 });
+        }
+        return list;
+    }
+
+    // Inside a lens, sample the map closer to the lens centre, so it shows up enlarged.
+    // The zoom is strongest in the middle and eases toward the rim, like a convex lens.
+    function magnified(px, py, list) {
+        for (const l of list) {
+            if (px < l.x0 || px > l.x1 || py < l.y0 || py > l.y1) continue;
+            const dx = px - l.cx, dy = py - l.cy;
+            const q = Math.hypot(dx, dy) / l.rad;                       // 0 at centre, ~1 at the corners
+            const f = (1 + SETTINGS.lensCurve * q * q) / SETTINGS.magnify;
+            return [l.cx + dx * f, l.cy + dy * f];
+        }
+        return [px, py];
+    }
+
     function draw(time) {
         const { cell, scale, step, hillHeight, hillSize, follow } = SETTINGS;
         const z = time * SETTINGS.speed;
@@ -106,11 +152,12 @@
         hill.y += (target.y - hill.y) * follow;
         hill.h += (target.on * hillHeight - hill.h) * 0.16;
         const twoSigma2 = 2 * hillSize * hillSize;
+        const glass = lenses();
 
         // Terrain: two octaves of noise, plus the cursor hill
         for (let j = 0; j < rows; j++) {
             for (let i = 0; i < cols; i++) {
-                const px = i * cell, py = j * cell;
+                const [px, py] = glass.length ? magnified(i * cell, j * cell, glass) : [i * cell, j * cell];
                 const x = px * scale, y = py * scale;
                 let e = noise(x, y, z) + 0.45 * noise(x * 2.1 + 17, y * 2.1 + 5, z * 1.3);
                 if (hill.h > 0.01) {
@@ -150,6 +197,7 @@
         ctx.clearRect(0, 0, width, height);
         ctx.lineCap = 'round';
         ctx.lineWidth = 1;
+        blendColours(0.12);   // ease toward the theme's colours
         ctx.strokeStyle = colours.line;
         ctx.stroke(minor);
         ctx.lineWidth = 1.5;

@@ -125,7 +125,7 @@
             const size = p.size || SIZES[i % SIZES.length];
             // Just the image; the title appears on hover, everything else is in the deep dive
             return `
-                <button type="button" class="tile${size ? ` tile--${size}` : ''}" data-index="${i}"
+                <button type="button" class="tile${size ? ` tile--${size}` : ''}" data-magnify data-index="${i}"
                         data-stage="${stage(p.status)}" style="--d:${i}" aria-label="${esc(p.title)}">
                     ${p.image ? `<img src="${esc(p.image)}" alt="" loading="lazy" onerror="this.remove()">` : ''}
                     <span class="tile-title" aria-hidden="true">${esc(p.title)}</span>
@@ -207,22 +207,93 @@
     }
 
     // ─── Light / dark theme ───
-    function syncThemeButton() {
-        const dark = document.documentElement.dataset.theme === 'dark';
-        $('theme-toggle').setAttribute('aria-checked', String(dark));
+    let themeTimer = 0;
+    function setTheme(next) {
+        const root = document.documentElement;
+        if (root.dataset.theme === next) return;
+        // Cross-fade the page into the new theme, then tidy up
+        root.classList.add('theme-fade');
+        clearTimeout(themeTimer);
+        themeTimer = setTimeout(() => root.classList.remove('theme-fade'), 650);
+        root.dataset.theme = next;
+        try { localStorage.setItem('theme', next); } catch (e) { /* private mode: just don't remember */ }
+        $('theme-toggle').setAttribute('aria-checked', String(next === 'dark'));
     }
 
-    function toggleTheme() {
-        const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-        document.documentElement.dataset.theme = next;
-        try { localStorage.setItem('theme', next); } catch (e) { /* private mode: just don't remember */ }
-        syncThemeButton();
+    // The switch's knob is a damped spring driven every frame, not a CSS transition, so it
+    // accelerates, overshoots a touch and settles. It stretches with its speed like a drop of
+    // liquid, and the sky, sun, moon and stars all follow its position (--p, 0 = light, 1 = dark).
+    // You can also drag or flick it.
+    function initThemeSwitch() {
+        const sw = $('theme-toggle');
+        const TRAVEL = 32;                       // px the knob moves
+        const STIFFNESS = 210, DAMPING = 19;     // spring: higher stiffness = snappier, lower damping = more wobble
+        let p = document.documentElement.dataset.theme === 'dark' ? 1 : 0;
+        let v = 0, goal = p, raf = 0, last = 0;
+        let drag = null;                         // { x, p, moved, lastX, lastT }
+
+        const paint = () => {
+            const speed = Math.min(Math.abs(v) / 9, 1);          // 0 at rest .. 1 at full flick
+            const sx = 1 + 0.55 * speed, sy = 1 - 0.22 * speed;  // stretch along the travel, thin across it
+            sw.style.setProperty('--p', p.toFixed(4));
+            sw.style.setProperty('--sx', sx.toFixed(3));
+            sw.style.setProperty('--sy', sy.toFixed(3));
+        };
+
+        const step = now => {
+            const dt = Math.min((now - last) / 1000, 1 / 30);
+            last = now;
+            if (!drag) {
+                v += (STIFFNESS * (goal - p) - DAMPING * v) * dt;
+                p += v * dt;
+            }
+            paint();
+            if (drag || Math.abs(goal - p) > 0.0005 || Math.abs(v) > 0.005) raf = requestAnimationFrame(step);
+            else { p = goal; v = 0; paint(); raf = 0; }
+        };
+        const run = () => { if (!raf) { last = performance.now(); raf = requestAnimationFrame(step); } };
+
+        const settleTo = target => {
+            goal = target;
+            setTheme(target ? 'dark' : 'light');
+            run();
+        };
+
+        sw.addEventListener('pointerdown', e => {
+            sw.setPointerCapture(e.pointerId);
+            drag = { x: e.clientX, p, moved: false, lastX: e.clientX, lastT: performance.now() };
+            run();
+        });
+        sw.addEventListener('pointermove', e => {
+            if (!drag) return;
+            const dx = e.clientX - drag.x;
+            if (Math.abs(dx) > 3) drag.moved = true;
+            const now = performance.now();
+            const next = Math.max(-0.08, Math.min(1.08, drag.p + dx / TRAVEL));   // a little give past the ends
+            v = (next - p) / Math.max((now - drag.lastT) / 1000, 1 / 240);
+            p = next;
+            drag.lastX = e.clientX; drag.lastT = now;
+        });
+        const release = () => {
+            if (!drag) return;
+            const wasDrag = drag.moved;
+            drag = null;
+            // A tap flips it; a drag or flick lands on whichever side it's heading for
+            if (!wasDrag) settleTo(goal ? 0 : 1);
+            else settleTo(p + v * 0.12 > 0.5 ? 1 : 0);
+        };
+        sw.addEventListener('pointerup', release);
+        sw.addEventListener('pointercancel', release);
+        // Keyboard (Space / Enter) still works: those clicks have no pointer behind them
+        sw.addEventListener('click', e => { if (e.detail === 0) settleTo(goal ? 0 : 1); });
+
+        sw.setAttribute('aria-checked', String(p === 1));
+        paint();
     }
 
     // ─── Events ───
     function bind() {
-        $('theme-toggle').addEventListener('click', toggleTheme);
-        syncThemeButton();
+        initThemeSwitch();
         $('open-gallery').addEventListener('click', openGallery);
         document.querySelectorAll('[data-close-gallery]').forEach(el => el.addEventListener('click', closeGallery));
         document.querySelectorAll('[data-close-dive]').forEach(el => el.addEventListener('click', closeDive));
