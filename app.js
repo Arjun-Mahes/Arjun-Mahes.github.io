@@ -13,7 +13,7 @@
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const slugify = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-    // ─── Tiny markdown: paragraphs, "- " lists, **bold**, *italic*, `code`, [links](url) ───
+    // ─── Tiny markdown: paragraphs, "- " lists, images, **bold**, *italic*, `code`, [links](url) ───
     function inline(text) {
         return esc(text)
             .replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -33,7 +33,9 @@
         };
         for (const line of src.split('\n').map(l => l.trim())) {
             const item = line.match(/^[-*]\s+(.*)/);
+            const img = line.match(/^!\[([^\]]*)\]\(([^)\s]+)\)$/);
             if (!line) flush();
+            else if (img) { flush(); html.push(`<img class="detail-img" src="${esc(img[2])}" alt="${esc(img[1])}" loading="lazy">`); }
             else if (item) { if (para.length) flush(); list.push(item[1]); }
             else { if (list.length) flush(); para.push(line); }
         }
@@ -123,7 +125,7 @@
             const size = p.size || SIZES[i % SIZES.length];
             // Just the image; the title appears on hover, everything else is in the deep dive
             return `
-                <button type="button" class="tile${size ? ` tile--${size}` : ''}" data-glass data-index="${i}"
+                <button type="button" class="tile${size ? ` tile--${size}` : ''}" data-index="${i}"
                         data-stage="${stage(p.status)}" style="--d:${i}" aria-label="${esc(p.title)}">
                     ${p.image ? `<img src="${esc(p.image)}" alt="" loading="lazy" onerror="this.remove()">` : ''}
                     <span class="tile-title" aria-hidden="true">${esc(p.title)}</span>

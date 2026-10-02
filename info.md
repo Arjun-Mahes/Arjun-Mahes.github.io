@@ -47,7 +47,7 @@ Summary: A homebuilt STM with a piezo scan head, magnetic vibration isolation, a
 - Designed schematics for the preamplifier and control circuits (DACs, ADCs, op-amps, noise reduction); now moving from validated schematics to routing.
 - Writing a continuous PI feedback loop in C++ to regulate sensor inputs and actuator states in real time.
 
-### EV Charger Test Stations
+### EV Charger Test Systems
 ![](images/projects/ev-charger-tester.jpg)
 Where: Soneil Spark · 2026
 Status: shipped
@@ -79,15 +79,19 @@ Summary: A custom board that amplifies and filters muscle signals, then digitize
 - Added an ESP32-S3 to sample the envelope and broadcast it wirelessly to another microcontroller, with native USB-C for programming and a buck converter for the 3.3 V rail.
 - Runs from split ±9 V batteries for the analog side; built as the muscle-sensing front end for my prosthetic and exoskeleton projects.
 
-### Argon Mass Flow Controller
-![](images/projects/argon-mfc.jpg)
-Where: Hacker Fab · 2025
+### Hacker Fab
+![](images/projects/hackerfab.png)
+Where: Waterloo Hacker Fab · 2025
 Status: prototype
 Tags: hardware, firmware
 Tools: KiCad, ESP32, Stepper motor
-Summary: A custom ESP32 board and closed-loop controller that meters argon into a PVD sputtering system.
-- Designed a custom PCB in KiCad with an ESP32 and a motor driver.
-- Engineered a closed-loop controller that reads a pressure sensor and commands a stepper motor to actuate the gas tank valve, regulating argon flow.
+Size: normal
+Summary: Hardware for Waterloo Hacker Fab, an open-source semiconductor fab where every tool is built from scratch.
+**Argon mass flow controller**
+![Argon mass flow controller PCB](images/projects/hackerfab-mfc-pcb.png)
+- I designed this board in KiCad to control how much argon flows into our PVD sputtering system.
+- The ESP32 reads a pressure sensor and a knob that sets the flow you want, then tells a stepper motor how far to turn the gas valve.
+- There's a small LCD so you can see what it's doing, and a diode on the power input so plugging it in backwards doesn't fry anything.
 
 ### Triboelectric Nanogenerators
 ![](images/projects/teng.jpg)
