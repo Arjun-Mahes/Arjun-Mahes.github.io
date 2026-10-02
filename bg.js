@@ -6,6 +6,9 @@
     const SETTINGS = {
         cell: 10,            // grid spacing in px; smaller = smoother lines, more work
         scale: 0.0028,       // noise zoom: lower = broader hills
+        terrain: 'smooth',   // starting terrain: 'smooth' rolling hills or jagged 'mountains'.
+        jagSteps: 4,         // double-clicks from smooth to fully jagged; one more goes back to smooth
+        morphSpeed: 0.09,    // 0..1 per frame: how quickly a double-click morphs the terrain (~0.5 s)
         step: 0.1,           // elevation between contour lines
         speed: 0.02,         // how fast the terrain morphs
         fps: 60,
@@ -105,6 +108,11 @@
     const target = { x: 0, y: 0, on: 0 };
     const hill = { x: 0, y: 0, h: 0 };
 
+    // The terrain drifts slowly, so its heights are cached and rebuilt ~20x a second (or straight
+    // away if the lenses move); only the cursor hill is added fresh every frame.
+    let base = new Float32Array(0), sampleX = new Float32Array(0), sampleY = new Float32Array(0);
+    let baseTime = -1, baseKey = '';
+
     function resize() {
         const dpr = Math.min(devicePixelRatio || 1, 2);
         width = innerWidth;
@@ -115,6 +123,10 @@
         cols = Math.ceil(width / SETTINGS.cell) + 1;
         rows = Math.ceil(height / SETTINGS.cell) + 1;
         field = new Float32Array(cols * rows);
+        base = new Float32Array(cols * rows);
+        sampleX = new Float32Array(cols * rows);
+        sampleY = new Float32Array(cols * rows);
+        baseTime = -1;
     }
 
     // Visible magnifying tiles as rectangles
@@ -144,6 +156,39 @@
         return [px, py];
     }
 
+    // Terrain height at a point.
+    // 'smooth': two octaves of plain noise (rolling hills).
+    // 'mountains': ridged multifractal noise. Each octave is folded (1 - |n|) so it peaks in sharp
+    // crests, squared to sharpen them, and weighted by the octave above so detail piles up on the
+    // ridges, which is what makes contour lines bunch on steep slopes and turn jagged.
+    // A double-click blends between them: jag goes 0 (smooth) .. 1 (mountains).
+    let jag = SETTINGS.terrain === 'mountains' ? 1 : 0;
+    let jagGoal = jag;
+
+    function smoothHeight(x, y, z) {
+        return noise(x, y, z) + 0.45 * noise(x * 2.1 + 17, y * 2.1 + 5, z * 1.3);
+    }
+
+    function elevation(x, y, z) {
+        if (jag <= 0.001) return smoothHeight(x, y, z);
+        if (jag >= 0.999) return mountainHeight(x, y, z);
+        return smoothHeight(x, y, z) * (1 - jag) + mountainHeight(x, y, z) * jag;
+    }
+
+    function mountainHeight(x, y, z) {
+        let sum = 0, amp = 0.62, freq = 0.9, weight = 1;
+        for (let o = 0; o < 5; o++) {
+            let ridge = 1 - Math.abs(noise(x * freq + o * 17.3, y * freq + o * 31.7, z * (1 + o * 0.35)) * 1.4);
+            ridge = Math.max(0, ridge);
+            ridge *= ridge * weight;
+            weight = Math.min(1, ridge * 1.8);
+            sum += ridge * amp;
+            freq *= 2.05;
+            amp *= 0.5;
+        }
+        return sum * 2.3 - 1.15;    // map into the contour range
+    }
+
     function draw(time) {
         const { cell, scale, step, hillHeight, hillSize, follow } = SETTINGS;
         const z = time * SETTINGS.speed;
@@ -153,19 +198,33 @@
         hill.h += (target.on * hillHeight - hill.h) * 0.16;
         const twoSigma2 = 2 * hillSize * hillSize;
         const glass = lenses();
+        const morphing = Math.abs(jagGoal - jag) > 0.001;
+        if (morphing) jag += (jagGoal - jag) * SETTINGS.morphSpeed;
+        else jag = jagGoal;
 
-        // Terrain: two octaves of noise, plus the cursor hill
-        for (let j = 0; j < rows; j++) {
-            for (let i = 0; i < cols; i++) {
-                const [px, py] = glass.length ? magnified(i * cell, j * cell, glass) : [i * cell, j * cell];
-                const x = px * scale, y = py * scale;
-                let e = noise(x, y, z) + 0.45 * noise(x * 2.1 + 17, y * 2.1 + 5, z * 1.3);
-                if (hill.h > 0.01) {
-                    const dx = px - hill.x, dy = py - hill.y;
-                    e += hill.h * Math.exp(-(dx * dx + dy * dy) / twoSigma2);
+        // Terrain heights (cached), seen through any lenses
+        const key = glass.map(l => `${l.x0 | 0},${l.y0 | 0},${l.x1 | 0},${l.y1 | 0}`).join(';');
+        if (morphing || baseTime < 0 || key !== baseKey || time - baseTime > 0.05 || time < baseTime) {
+            for (let j = 0, k = 0; j < rows; j++) {
+                for (let i = 0; i < cols; i++, k++) {
+                    const [px, py] = glass.length ? magnified(i * cell, j * cell, glass) : [i * cell, j * cell];
+                    sampleX[k] = px;
+                    sampleY[k] = py;
+                    base[k] = elevation(px * scale, py * scale, z);
                 }
-                field[j * cols + i] = e;
             }
+            baseTime = time;
+            baseKey = key;
+        }
+
+        // Plus the cursor hill, every frame
+        for (let k = 0; k < field.length; k++) {
+            let e = base[k];
+            if (hill.h > 0.01) {
+                const dx = sampleX[k] - hill.x, dy = sampleY[k] - hill.y;
+                e += hill.h * Math.exp(-(dx * dx + dy * dy) / twoSigma2);
+            }
+            field[k] = e;
         }
 
         const minor = new Path2D();
@@ -206,6 +265,19 @@
     }
 
     addEventListener('resize', resize);
+
+    // Each double-click (except on links and buttons) makes the terrain one step more jagged;
+    // after the last step the next one eases it back to smooth
+    const interactive = 'a, button, input, select, textarea, label, [contenteditable], .tile';
+    document.addEventListener('dblclick', e => {
+        if (e.target.closest(interactive)) return;
+        jagGoal = jagGoal >= 0.999 ? 0 : Math.min(1, Math.round(jagGoal * SETTINGS.jagSteps + 1) / SETTINGS.jagSteps);
+        window.getSelection()?.removeAllRanges();
+    });
+    // Stop double-clicks from highlighting words on the page
+    document.addEventListener('mousedown', e => {
+        if (e.detail > 1 && !e.target.closest(interactive)) e.preventDefault();
+    });
     addEventListener('pointermove', e => {
         target.x = e.clientX;
         target.y = e.clientY;

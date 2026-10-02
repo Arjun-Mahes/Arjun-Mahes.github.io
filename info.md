@@ -98,9 +98,11 @@ Summary: Hardware for Waterloo Hacker Fab, an open-source semiconductor fab wher
 Where: Personal
 Status: complete
 Tags: hardware
-Tools: Materials, Energy harvesting
-Summary: Harvesting electricity from contact and motion using triboelectric materials.
-- Details coming soon.
+Tools: SolidWorks, Aluminum, Copper, PTFE
+Size: tall
+Summary: A wind-powered generator that makes electricity from the triboelectric effect, reaching 52 V from a small device.
+Our device converted wind energy into electricity through the triboelectric effect. We incorporated the usage of aluminum sheets, copper sheets, nylon and Teflon, which touched and separated on repeating time intervals, generating opposite surface charges and a high voltage difference. The cyclical motion produced an alternating electron flow through an external circuit, generating 52 volts of electrical power through a small device.
+![SolidWorks design of the triboelectric generator rotor](images/projects/teng-cad.jpg)
 
 ### Neural Style Transfer
 ![](images/projects/style-transfer.png)
