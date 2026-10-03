@@ -1459,3 +1459,8 @@ html.ready .card {
 @keyframes reveal-fallback {
     to { opacity: 1; }
 }
+
+/* Portrait: keep the face in frame when the tall photo is cropped to the card */
+.card-photo img {
+    object-position: 50% 30%;
+}
