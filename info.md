@@ -30,10 +30,11 @@ Where: Personal
 Status: in progress
 Tags: hardware, firmware, software
 Tools: SolidWorks, Altium, STM32CubeMX
-Summary: An elbow exoskeleton that assists only as much as the patient needs, driven by EMG and eventually EEG.
-- Designed the elbow joint assembly and the electrical system in Altium: an STM32 talking over SPI, I2C and UART to a motor driver, magnetic encoder, ESP32 and two EMG sensors.
-- Implemented Field-Oriented Control for a 3-phase BLDC motor, with assist-as-needed firmware that scales torque inversely to EMG muscle activation, so support drops as the patient recovers.
-- Developing an EEG deep learning model for motor imagery detection to trigger the assist, with the ESP32 handling wireless telemetry for the brain-computer interface.
+Summary: An elbow exoskeleton that only helps as much as the patient needs, reading their muscles (and eventually their brain) to decide when to assist.
+- After a stroke, people recover faster when they try to move on their own, so I wanted a device that steps back as they get stronger instead of doing all the work.
+- I designed the elbow joint in SolidWorks and the electronics in Altium: an STM32 that talks to the motor driver, a magnetic encoder, an ESP32 and two EMG sensors.
+- The motor is a 3-phase BLDC running field-oriented control. The firmware gives less torque the harder the patient's own muscles are working, so the help fades as they recover.
+- Right now I'm training a deep learning model on EEG to detect when someone is just thinking about moving, so the arm can kick in from intent alone. The ESP32 handles the wireless link for that.
 
 ### Scanning Tunneling Microscope
 ![](images/projects/stm.jpg)
@@ -41,11 +42,11 @@ Where: Personal
 Status: in progress
 Tags: hardware, firmware
 Tools: SolidWorks, KiCad, C++
-Summary: A homebuilt STM with a piezo scan head, magnetic vibration isolation, and custom preamp and control electronics.
-- Designed a damped vibration isolation system using magnets, springs and threaded rods.
-- Engineered a piezoelectric scan head capable of sub-angstrom movement across a substrate.
-- Designed schematics for the preamplifier and control circuits (DACs, ADCs, op-amps, noise reduction); now moving from validated schematics to routing.
-- Writing a continuous PI feedback loop in C++ to regulate sensor inputs and actuator states in real time.
+Summary: Building a microscope at home that can see individual atoms, from the vibration isolation to the electronics.
+- At atomic scales everything is noise, even someone walking in the next room, so I built a damped isolation stage out of magnets, springs and threaded rods.
+- The scan head uses piezoelectric material to move the tip less than an angstrom at a time across the sample.
+- I've designed and checked the schematics for the preamp and the control board (DACs, ADCs, op-amps and a lot of noise reduction), and I'm now laying out the PCBs.
+- Next up is the C++ PI feedback loop that keeps the tip at the right height while it scans.
 
 ### EV Charger Test Systems
 ![](images/projects/ev-charger-tester.jpg)
@@ -53,9 +54,10 @@ Where: Soneil Spark · 2026
 Status: shipped
 Tags: hardware, firmware, software
 Tools: C++, ESP32, Raspberry Pi
-Summary: Automated high-voltage AC/DC test rigs that run a charger through its safety compliance checks in about two minutes.
-- Integrated relay boards, contactors and simulated EV-to-EVSE communication to validate government safety compliance.
-- Wrote custom C++ firmware and built dashboards on a Raspberry Pi and ESP32 to run the test hardware autonomously, cutting the test cycle to 2 minutes per charger.
+Summary: Test rigs I built at Soneil that put every EV charger through its safety checks on their own, in about two minutes.
+- Every charger has to pass government safety tests before it ships, and doing them by hand was slow, so I automated it.
+- The rigs use relay boards and contactors to switch the charger through each test, and fake the signals a real car sends so the charger thinks one is plugged in.
+- I wrote the firmware in C++ on an ESP32 and built dashboards on a Raspberry Pi, so an operator just hits start and the results get logged. Each charger now takes about two minutes.
 
 ### Third Thumb Prosthetic
 ![](images/projects/third-thumb.jpg)
@@ -63,9 +65,9 @@ Where: Personal
 Status: prototype
 Tags: hardware, firmware
 Tools: SolidWorks, Altium, nRF52810
-Summary: A wearable robotic extra thumb, controlled by forearm EMG or by pressing your toes in a sensor-equipped shoe.
-- Designed the CAD in SolidWorks, with two servo motors for digit articulation and grip control.
-- Designed two wireless transmitter PCBs for dual-mode proportional control: an ESP32-based EMG amplifier with signal filtering, and an nRF52810 dual-FSR shoe that turns toe pressure into multi-axis joint movement.
+Summary: A robotic extra thumb you wear on your hand, controlled with your forearm muscles or by pressing your toes.
+- I designed the thumb in SolidWorks with two servos, so it can bend and grip.
+- I wanted two ways to control it, so I made two wireless boards: an EMG amplifier on an ESP32 that reads your forearm muscles, and a shoe with two pressure sensors on an nRF52810 that turns toe pressure into thumb movement.
 
 ### EMG Amplifier PCB
 ![](images/projects/emg-amplifier.png)
@@ -74,10 +76,10 @@ Status: complete
 Tags: hardware, firmware
 Tools: KiCad, ESP32-S3, Analog design
 Size: wide
-Summary: A custom board that amplifies and filters muscle signals, then digitizes them on an ESP32-S3 and streams them wirelessly.
-- Rebuilt the Advancer Technologies EMG analog chain in KiCad: instrumentation amplifier, gain stages, a ~106 Hz high-pass, full-wave rectifier and a ~2 Hz envelope low-pass with a trimmable final gain.
-- Added an ESP32-S3 to sample the envelope and broadcast it wirelessly to another microcontroller, with native USB-C for programming and a buck converter for the 3.3 V rail.
-- Runs from split ±9 V batteries for the analog side; built as the muscle-sensing front end for my prosthetic and exoskeleton projects.
+Summary: My own board for reading muscle signals and sending them wirelessly, built as the input for my prosthetic and exoskeleton.
+- I rebuilt the Advancer Technologies EMG circuit in KiCad: an instrumentation amp, a couple of gain stages, filters, and a rectifier that turns the raw signal into a smooth "how hard is this muscle working" envelope.
+- Then I added an ESP32-S3 that samples that envelope and sends it wirelessly to whatever needs it, with USB-C for programming.
+- The analog side runs off two 9 V batteries.
 
 ### Hacker Fab
 ![](images/projects/hackerfab.png)
@@ -86,7 +88,7 @@ Status: prototype
 Tags: hardware, firmware
 Tools: KiCad, ESP32, Stepper motor
 Size: normal
-Summary: Hardware for Waterloo Hacker Fab, an open-source semiconductor fab where every tool is built from scratch.
+Summary: Hardware I've built for Waterloo Hacker Fab, a student fab where we make our own semiconductor tools from scratch.
 **Argon mass flow controller**
 ![Argon mass flow controller PCB](images/projects/hackerfab-mfc-pcb.png)
 - I designed this board in KiCad to control how much argon flows into our PVD sputtering system.
@@ -100,9 +102,13 @@ Status: complete
 Tags: hardware
 Tools: SolidWorks, Aluminum, Copper, PTFE
 Size: tall
-Summary: A wind-powered generator that makes electricity from the triboelectric effect, reaching 52 V from a small device.
-Our device converted wind energy into electricity through the triboelectric effect. We incorporated the usage of aluminum sheets, copper sheets, nylon and Teflon, which touched and separated on repeating time intervals, generating opposite surface charges and a high voltage difference. The cyclical motion produced an alternating electron flow through an external circuit, generating 52 volts of electrical power through a small device.
-![SolidWorks design of the triboelectric generator rotor](images/projects/teng-cad.jpg)
+Summary: A little generator that turns moving air into electricity using static, the same effect that shocks you after walking on carpet.
+- When two different materials touch and pull apart, one steals electrons from the other and they end up oppositely charged. That's the triboelectric effect, and we used it to make power.
+- Our generator has a spinning rotor that air pushes around. As it turns, layers of aluminum, copper, nylon and Teflon keep touching and separating, building up charge each time.
+- Because the charge flips back and forth with every turn, it pushes current back and forth through an external circuit as AC.
+- We designed the whole thing in SolidWorks (the rotor, the contact surfaces and the housing the air blows through) and built it mostly out of cheap household materials.
+- It held 30–50 V for over two minutes and got up to 52 V, from something you can hold in one hand.
+![SolidWorks design of the generator rotor](images/projects/teng-cad.jpg)
 
 ### Neural Style Transfer
 ![](images/projects/style-transfer.png)
@@ -110,12 +116,12 @@ Where: Personal
 Status: complete
 Tags: software
 Tools: PyTorch, VGG19, Python
-Summary: Repainting a photo in the style of another image by optimizing the pixels against a pretrained VGG19 network.
+Summary: Repainting any photo in the style of a painting, by letting a neural network judge how close the picture is getting.
 Link: [View the code](https://github.com/Arjun-Mahes/Neural-Style-Transfer)
-- Implemented Gatys et al.'s method in PyTorch: content comes from VGG19's conv4_2 features, style from Gram matrices across five convolutional layers.
-- Weighted the style layers from fine brushstrokes (conv1_1) down to large structures (conv5_1), with the style loss weighted 10⁶ to 1 against content.
-- Optimized the image itself (not a network) with Adam for 10,000 steps on a GPU; here a golden retriever photo repainted in the style of a Japanese wave woodblock print.
-- Built a Streamlit app around it: upload a photo and a style image, watch a live preview as it optimizes, and download the result. The code and run instructions are on GitHub.
+- I implemented the Gatys et al. method in PyTorch. A pretrained VGG19 looks at both images: one of its deeper layers captures what's in the photo, and patterns across five layers capture the painting's style.
+- Instead of training a network, it edits the image's pixels directly, nudging them until the result keeps the photo's content but picks up the painting's brushstrokes.
+- Here it's a golden retriever puppy repainted as a Japanese wave woodblock print.
+- I also wrapped it in a Streamlit app, so you can upload your own two images, watch it work and download the result. The code is on GitHub.
 
 ### Ion Trap Simulation
 ![](images/projects/ion-trap.jpg)
@@ -123,8 +129,8 @@ Where: HardHaQ Hackathon
 Status: 1st place
 Tags: software
 Tools: COMSOL, Python, SciPy
-Summary: Optimized trapped-ion quantum computer geometries in COMSOL. Our surface trap doubled trap depth and took 1st place.
+Summary: At HardHaQ, my team designed better traps for holding the atoms in a quantum computer, and won 1st place.
 Link: [View the study](https://www.tqetchs.xyz/)
-- With a team of 4, simulated and optimized Paul and surface trap geometries in COMSOL Multiphysics.
-- Built a Python–COMSOL pipeline using parameter sweeps and SciPy optimizers (Nelder-Mead, SLSQP) to tune geometry and voltages against trap depth, symmetry and RF power.
-- Designed a novel surface-electrode trap with 2x the trap depth and over 30,000x lower estimated RF power than the baseline rod design.
+- Trapped-ion quantum computers hold charged atoms in place with electric fields, and the shape of the trap decides how well it holds them. We simulated two kinds in COMSOL: a classic rod (Paul) trap and a flat surface trap.
+- I built a Python pipeline that drove COMSOL through parameter sweeps, using optimizers to tune the geometry and voltages for a deeper, more symmetric trap that uses less RF power.
+- Our surface trap ended up with twice the trap depth of the rod design, using about 32,700x less RF power.

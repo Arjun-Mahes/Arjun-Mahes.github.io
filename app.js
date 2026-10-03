@@ -336,11 +336,20 @@
         } catch {
             $('tagline').innerHTML = `Couldn't load <code>info.md</code>. Serve this folder over HTTP
                 (<code>python -m http.server</code>) instead of opening the file directly.`;
+            reveal();
             return;
         }
         renderLanding();
         renderGallery();
+        // Wait for the web fonts too (at most ~0.8 s) so the name doesn't visibly swap fonts
+        await Promise.race([document.fonts?.ready, new Promise(r => setTimeout(r, 800))]);
+        reveal();
         openFromHash();
+    }
+
+    // The card stays hidden until its content and fonts are in, then fades in once
+    function reveal() {
+        document.documentElement.classList.add('ready');
     }
 
     document.addEventListener('DOMContentLoaded', load);

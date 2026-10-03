@@ -1435,3 +1435,27 @@ html.theme-fade .theme-switch *::before,
 html.theme-fade .theme-switch *::after {
     transition: none !important;
 }
+
+/* ═══════════════════════════════════════════
+   NO FLASH ON LOAD
+   The card is hidden until app.js has filled it in and the fonts are loaded
+   (html.ready), then it fades and rises in. A fallback reveals it after 2.5 s
+   even if the script never runs, so the page can't get stuck blank.
+   ═══════════════════════════════════════════ */
+html:not(.ready) .landing {
+    opacity: 0;
+    animation: reveal-fallback 0s linear 2.5s forwards;
+}
+
+html.ready .landing {
+    opacity: 1;
+    transition: opacity 0.35s ease;
+}
+
+html.ready .card {
+    animation: rise 0.5s var(--ease) both;
+}
+
+@keyframes reveal-fallback {
+    to { opacity: 1; }
+}
