@@ -8,13 +8,11 @@
     <meta name="description" content="Arjun Mahes — Mechatronics Engineering at the University of Waterloo. Robots, semiconductors, embedded systems and exoskeletons.">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
 
-    <!-- Theme: saved choice, else the system setting. Runs before paint so there's no flash. -->
+    <!-- Theme: always start from the system's light/dark setting. Runs before paint so there's no flash. -->
     <script>
         (function () {
-            let theme = null;
-            try { theme = localStorage.getItem('theme'); } catch (e) {}
-            if (theme !== 'light' && theme !== 'dark') theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-            document.documentElement.dataset.theme = theme;
+            try { localStorage.removeItem('theme'); } catch (e) {}   // clear any choice saved by older versions
+            document.documentElement.dataset.theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         })();
     </script>
 
@@ -102,7 +100,7 @@
     </div>
 
     <script src="bg.js?v=44"></script>
-    <script src="app.js?v=730"></script>
+    <script src="app.js?v=740"></script>
 </body>
 
 </html>

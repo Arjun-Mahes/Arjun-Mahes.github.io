@@ -216,7 +216,6 @@
         clearTimeout(themeTimer);
         themeTimer = setTimeout(() => root.classList.remove('theme-fade'), 650);
         root.dataset.theme = next;
-        try { localStorage.setItem('theme', next); } catch (e) { /* private mode: just don't remember */ }
         $('theme-toggle').setAttribute('aria-checked', String(next === 'dark'));
     }
 
@@ -286,6 +285,10 @@
         sw.addEventListener('pointercancel', release);
         // Keyboard (Space / Enter) still works: those clicks have no pointer behind them
         sw.addEventListener('click', e => { if (e.detail === 0) settleTo(goal ? 0 : 1); });
+
+        // Follow the system live: if it switches between light and dark while the page is open,
+        // slide the switch over and change the theme with it. (The switch itself only lasts for this visit.)
+        matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => settleTo(e.matches ? 1 : 0));
 
         sw.setAttribute('aria-checked', String(p === 1));
         paint();
