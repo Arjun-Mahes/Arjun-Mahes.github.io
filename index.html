@@ -24,10 +24,12 @@
         }
     </script>
 
-    <!-- SF Pro on Apple devices; Inter is the closest stand-in elsewhere -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Righteous&family=DM+Sans:opsz,wght@9..40,400..700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Fonts are self-hosted (fonts/, declared in fonts.css): no extra trips to Google before the page can draw.
+         The three on the landing card start downloading straight away. -->
+    <link rel="preload" href="fonts/righteous-400-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="fonts/dm-sans-400-700-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="fonts/space-mono-400-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="fonts.css?v=1">
     <link rel="stylesheet" href="styles.css?v=752">
 </head>
 
