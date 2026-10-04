@@ -58,6 +58,8 @@
         state.socials = [...socials.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)].map(([, label, url]) => ({ label, url }));
         state.about = (bodies.home || []).map(l => l.trim().match(/^[-*]\s+(.*)/)).filter(Boolean).map(m => m[1]);
         state.projects = parseProjects((bodies.projects || []).join('\n'));
+        // Pictures for the rocket game's photo orbs: image lines under "## Orbs"
+        window.rocketGame?.setOrbs((bodies.orbs || []).map(l => l.match(/^\s*!\[[^\]]*\]\(([^)\s]+)\)/)).filter(Boolean).map(m => m[1]));
     }
 
     // Each "### Title" block: an image line, "Key: value" lines, then free markdown for the deep dive

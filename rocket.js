@@ -1,7 +1,8 @@
 // The game behind the 👋: a rocket in an asteroid field on the flooded screen.
 // Steer with the mouse / a finger / ←→ (or A D). Hold the mouse button, a finger or Space to shoot;
 // the first press launches. Asteroids (big ones split), comets, satellites and UFOs come at you;
-// fly into ★ for triple shot or ⬡ for a shield that takes one hit.
+// fly into ★ for triple shot or ⬡ for a shield that takes one hit. Photo orbs (info.md, "## Orbs")
+// join the field once there are pictures for them. More and more things come down as the run goes on.
 // One canvas, drawn only while the Random screen is open (app.js calls rocketGame.open / close).
 (function () {
     const canvas = document.getElementById('rocket');
@@ -11,7 +12,7 @@
 
     const TUNING = {
         speed: 320, speedGain: 10, maxSpeed: 950,      // px/s the world falls at, and how it ramps up
-        spawnEvery: 0.5, spawnMin: 0.14,               // s between objects, shrinking as you go
+        startCount: 3, countGain: 0.15, maxCount: 26,  // things on screen: 3 at launch, +1 every ~7 s, up to 26
         steer: 12, keySpeed: 760,                      // how fast the rocket follows the pointer / keys
         fireEvery: 0.11, bulletSpeed: 1000,            // shooting
         powerTime: 7,                                  // s of triple shot
@@ -25,8 +26,36 @@
         { kind: 'ufo', from: 12, weight: 6 },
         { kind: 'triple', from: 5, weight: 3, pickup: true },
         { kind: 'shield', from: 8, weight: 2, pickup: true },
+        { kind: 'orb', from: 0, weight: 30, needs: () => orbArt.length > 0 },
     ];
-    const POINTS = { rock: 10, comet: 25, satellite: 50, ufo: 100 };
+    const POINTS = { rock: 10, comet: 25, satellite: 50, ufo: 100, orb: 30 };
+
+    // Photo orbs: each picture is cut into a circle once, when it loads, so drawing one is a single
+    // drawImage per frame
+    const ORB_PX = 64;   // pre-rendered diameter in CSS px (drawn at 44-60 px)
+    let orbUrls = [], orbArt = [], orbsLoading = false;
+    function loadOrbs() {
+        if (orbsLoading || !orbUrls.length) return;
+        orbsLoading = true;
+        for (const url of orbUrls) {
+            const img = new Image();
+            img.decoding = 'async';
+            img.onload = () => {
+                const scale = 2;   // sharp on high-DPI screens
+                const c = document.createElement('canvas');
+                c.width = c.height = ORB_PX * scale;
+                const g = c.getContext('2d');
+                g.beginPath();
+                g.arc(c.width / 2, c.height / 2, c.width / 2, 0, Math.PI * 2);
+                g.clip();
+                // Cover: crop the middle square of the picture
+                const side = Math.min(img.naturalWidth, img.naturalHeight);
+                g.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, c.width, c.height);
+                orbArt.push(c);
+            };
+            img.src = url;
+        }
+    }
 
     let W = 0, H = 0, dpr = 1, ink = '#fafaf8', paint = '#a84825', mono = 'monospace';
     let state = 'off';            // off | ready | flying | crashed
@@ -57,7 +86,7 @@
         score = 0;
         runTime = 0;
         speed = TUNING.speed;
-        spawnIn = 0.5;
+        spawnIn = 0.6;
         fireIn = 0;
         triple = 0;
         shield = false;
@@ -80,7 +109,7 @@
     }
 
     function spawn() {
-        const open = KINDS.filter(k => runTime >= k.from && !(k.pickup && things.some(o => o.pickup)));
+        const open = KINDS.filter(k => runTime >= k.from && (!k.needs || k.needs()) && !(k.pickup && things.some(o => o.pickup)));
         let roll = Math.random() * open.reduce((s, k) => s + k.weight, 0);
         const pick = open.find(k => (roll -= k.weight) < 0) || open[0];
         const x = rand(40, W - 40), y = -50;
@@ -90,6 +119,8 @@
             case 'satellite': return things.push({ kind: 'satellite', x, y, r: 20, hp: 3, vx: rand(60, 110) * (Math.random() < 0.5 ? -1 : 1),
                                                    fall: 0.55, rot: rand(-0.4, 0.4), spin: rand(-0.6, 0.6), flash: 0 });
             case 'ufo': return things.push({ kind: 'ufo', x, y, cx: x, r: 22, hp: 4, fall: 0.32, phase: rand(0, 6.3), amp: rand(80, 200), vx: 0, rot: 0, spin: 0, flash: 0 });
+            case 'orb': return things.push({ kind: 'orb', x, y, r: rand(22, 30), hp: 2, art: orbArt[Math.random() * orbArt.length | 0],
+                                             vx: rand(-30, 30), fall: rand(0.65, 0.95), rot: rand(-0.3, 0.3), spin: rand(-0.5, 0.5), flash: 0 });
             default: return things.push({ kind: pick.kind, pickup: true, x, y, r: 16, fall: 0.45, vx: 0, rot: 0, spin: 1.2, flash: 0 });
         }
     }
@@ -160,8 +191,11 @@
             spawnIn -= dt;
             if (spawnIn <= 0) {
                 spawn();
-                const ramp = Math.max(TUNING.spawnMin, TUNING.spawnEvery - runTime / 160);
-                spawnIn = ramp * rand(0.5, 1.3);
+                // Aim for a number of things on screen that climbs steadily, so the field keeps getting
+                // busier the longer you last. Things also fall faster over time, so the spawn rate
+                // scales with the speed: rate = count / time to cross the screen.
+                const count = Math.min(TUNING.maxCount, TUNING.startCount + runTime * TUNING.countGain);
+                spawnIn = rand(0.5, 1.5) / (count * speed / (H + 100));
             }
             triple = Math.max(0, triple - dt);
             invulnerable = Math.max(0, invulnerable - dt);
@@ -318,6 +352,15 @@
     }
 
     const DRAW = {
+        orb(o) {
+            // The picture, cut to a circle, with an ink rim
+            ctx.rotate(o.rot);
+            ctx.drawImage(o.art, -o.r, -o.r, o.r * 2, o.r * 2);
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(0, 0, o.r, 0, 6.3);
+            ctx.stroke();
+        },
         rock(o) {
             ctx.rotate(o.rot);
             ctx.beginPath();
@@ -516,7 +559,10 @@
     addEventListener('resize', () => { if (state !== 'off') resize(); });
 
     window.rocketGame = {
+        // Pictures for the photo orbs (paths from info.md); loaded the first time the game opens
+        setOrbs(urls) { orbUrls = urls || []; },
         open() {
+            loadOrbs();
             const css = getComputedStyle(document.documentElement);
             ink = css.getPropertyValue('--bg').trim() || ink;
             paint = css.getPropertyValue('--accent').trim() || paint;

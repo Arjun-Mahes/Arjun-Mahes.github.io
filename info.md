@@ -135,3 +135,11 @@ Link: [View the study](https://www.tqetchs.xyz/)
 - I built a Python pipeline that drove COMSOL through parameter sweeps, using optimizers to tune the geometry and voltages for a deeper, more symmetric trap that uses less RF power.
 - Our surface trap ended up with twice the trap depth of the rod design, using about 32,700x less RF power.
 
+
+## Orbs
+<!--
+  Photo orbs for the rocket game behind the 👋. Put pictures in images/orbs/ and list them here,
+  one per line, without these comment markers. The middle of each picture is cropped to a circle,
+  so roughly square photos work best (small ones are fine: they're drawn about 50 px wide).
+  ![](images/orbs/example.webp)
+-->
