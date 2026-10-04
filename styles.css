@@ -1529,21 +1529,55 @@ html.random-on .random {
     opacity: 0;
 }
 
-.random-fact {
-    max-width: 36ch;
-    min-height: 7.4em;   /* room for the emoji and three lines, so the buttons don't jump between facts */
+/* The game fills the screen behind the text */
+.rocket {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+    cursor: crosshair;
+    outline: none;
+}
+
+.random-title,
+.rocket-hint {
+    position: relative;
+    pointer-events: none;   /* clicks go through to the game */
+    transition: opacity 0.3s ease, transform 0.4s var(--ease);
+}
+
+.rocket-hint {
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+    min-height: 3.4em;
     margin: 0;
+    font: 500 0.95rem var(--mono);
     text-align: center;
-    font: 500 clamp(1.1rem, 2.4vw, 1.4rem)/1.45 var(--font);
-    text-wrap: balance;
     opacity: 0;
 }
 
-.random-actions {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px;
+.rocket-hint strong {
+    font: 400 1.6rem/1.1 "Righteous", var(--font-display);
+}
+
+.rocket-hint strong:empty {
+    display: none;
+}
+
+/* While flying, the title and hint get out of the way */
+html.rocket-playing .random-title,
+html.rocket-playing .rocket-hint {
+    opacity: 0;
+    transform: translateY(-12px);
+}
+
+.random-back {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    z-index: 1;
     opacity: 0;
 }
 
@@ -1558,7 +1592,6 @@ html.random-on .random {
     transition: background-color 0.12s ease, color 0.12s ease, transform 0.12s ease;
 }
 
-.random-btn--solid,
 .random-btn:hover,
 .random-btn:focus-visible {
     background: var(--bg);
@@ -1566,20 +1599,8 @@ html.random-on .random {
     outline: none;
 }
 
-.random-btn--solid:hover,
-.random-btn--solid:focus-visible {
-    transform: translateY(-1px);
-}
-
 .random-btn:active {
     transform: scale(0.97);
-}
-
-.random-emoji {
-    display: block;
-    margin-bottom: 10px;
-    font-size: 2.2em;
-    line-height: 1;
 }
 
 /* Visible without the animations too (reduced motion turns them off) */
@@ -1588,14 +1609,21 @@ html.random-on .random-title {
     animation: random-pop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
-html.random-on .random-fact {
+html.random-on .rocket-hint {
     opacity: 1;
     animation: random-fade 0.45s ease 0.3s both;
 }
 
-html.random-on .random-actions {
+html.random-on .random-back {
     opacity: 1;
     animation: random-fade 0.4s ease 0.45s both;
+}
+
+/* Animations (not the base state) carry the fade, so these still hide while flying */
+html.random-on.rocket-playing .random-title,
+html.random-on.rocket-playing .rocket-hint {
+    opacity: 0;
+    animation: none;
 }
 
 @keyframes random-pop {

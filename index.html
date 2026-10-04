@@ -30,7 +30,7 @@
     <link rel="preload" href="fonts/dm-sans-400-700-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="fonts/space-mono-400-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="fonts.css?v=1">
-    <link rel="stylesheet" href="styles.css?v=756">
+    <link rel="stylesheet" href="styles.css?v=758">
 </head>
 
 <body>
@@ -109,18 +109,18 @@
         </article>
     </div>
 
-    <!-- What's behind the 👋: wave at it enough and the map floods into this screen -->
+    <!-- What's behind the 👋: wave at it enough and the map floods into this screen, with a rocket game (rocket.js) -->
     <section class="random" id="random" aria-hidden="true">
+        <canvas class="rocket" id="rocket" tabindex="-1"
+                aria-label="Rocket game. Steer with the mouse, a finger or the arrow keys; click, tap or press Space to launch."></canvas>
         <h2 class="random-title">Random</h2>
-        <p class="random-fact" id="random-fact" aria-live="polite"></p>
-        <div class="random-actions">
-            <button type="button" class="random-btn random-btn--solid" id="random-next">Another one →</button>
-            <button type="button" class="random-btn" id="random-back">← Back</button>
-        </div>
+        <p class="rocket-hint" id="rocket-hint" aria-live="polite"></p>
+        <button type="button" class="random-btn random-back" id="random-back">← Back</button>
     </section>
 
     <script src="bg.js?v=50"></script>
-    <script src="app.js?v=747"></script>
+    <script src="app.js?v=748"></script>
+    <script src="rocket.js?v=1"></script>
 </body>
 
 </html>

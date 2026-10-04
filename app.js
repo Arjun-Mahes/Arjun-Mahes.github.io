@@ -7,7 +7,7 @@
     // Default mosaic rhythm for tiles without a "Size:" line; repeats every 8 projects
     const SIZES = ['big', 'tall', 'wide', '', '', 'wide', 'tall', ''];
 
-    const state = { name: '', tagline: '', socials: [], about: [], projects: [], facts: [], filter: 'all', current: -1 };
+    const state = { name: '', tagline: '', socials: [], about: [], projects: [], filter: 'all', current: -1 };
 
     const $ = id => document.getElementById(id);
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -58,7 +58,6 @@
         state.socials = [...socials.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)].map(([, label, url]) => ({ label, url }));
         state.about = (bodies.home || []).map(l => l.trim().match(/^[-*]\s+(.*)/)).filter(Boolean).map(m => m[1]);
         state.projects = parseProjects((bodies.projects || []).join('\n'));
-        state.facts = (bodies.random || []).map(l => l.trim().match(/^[-*]\s+(.*)/)).filter(Boolean).map(m => m[1]);
     }
 
     // Each "### Title" block: an image line, "Key: value" lines, then free markdown for the deep dive
@@ -298,7 +297,8 @@
 
     // ─── The 👋 easter egg ───
     // Each wave makes the background terrain more jagged (bg.js); the last one floods the screen
-    // with solid colour from the 👋 outward, the page fades away and the Random screen pops up.
+    // with solid colour from the 👋 outward, the page fades away and the Random screen pops up
+    // with a little rocket game on it (rocket.js).
     // Everything here animates only opacity and transforms, and the flood is drawn in bg.js's
     // worker, so the page itself does almost no work during it.
     const JAG_STEPS = 3;          // waves that roughen the terrain; the next one floods
@@ -324,48 +324,14 @@
         window.bgFx?.flood(true, floodFrom.x, floodFrom.y, FLOOD_MS);
         document.documentElement.classList.add('engulfed');
         clearTimeout(randomTimer);
-        nextFact(false);
         randomTimer = setTimeout(() => {
             document.documentElement.classList.add('random-on');
             $('random').setAttribute('aria-hidden', 'false');
-            $('random-next').focus({ preventScroll: true });
+            window.rocketGame?.open();
+            $('rocket').focus({ preventScroll: true });
         }, FLOOD_MS - 150);
     }
 
-    // Fun facts from info.md's "## Random" list, dealt from a shuffled deck so none repeats
-    // until they've all been shown
-    let deck = [], factTimer = 0;
-    function nextFact(animate = true) {
-        const el = $('random-fact');
-        if (!state.facts.length) { el.textContent = ''; return; }
-        if (!deck.length) {
-            deck = [...state.facts];
-            for (let i = deck.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [deck[i], deck[j]] = [deck[j], deck[i]];
-            }
-            if (deck.length > 1 && deck[deck.length - 1] === el.dataset.fact) deck.unshift(deck.pop());   // no repeat across reshuffles
-        }
-        const fact = deck.pop();
-        el.dataset.fact = fact;
-        // A leading emoji sits above the fact, larger
-        const m = fact.match(/^(\p{Extended_Pictographic}\S*)\s+(.*)$/u);
-        const show = () => {
-            el.innerHTML = m ? `<span class="random-emoji" aria-hidden="true">${m[1]}</span>${inline(m[2])}` : inline(fact);
-        };
-        if (!animate || matchMedia('(prefers-reduced-motion: reduce)').matches) return show();
-        // Out (up and fade), swap, in (from below): transforms and opacity only. The swap runs on a
-        // timer rather than the animation's end, so the text always changes even if animations are paused.
-        el.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(-10px)' }],
-                   { duration: 140, easing: 'ease-in', fill: 'forwards' });
-        clearTimeout(factTimer);
-        factTimer = setTimeout(() => {
-            show();
-            el.getAnimations().forEach(a => a.cancel());
-            el.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }],
-                       { duration: 260, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' });
-        }, 140);
-    }
 
     function leaveRandom() {
         if (!floodFrom) return;
@@ -373,6 +339,7 @@
         clearTimeout(randomTimer);
         root.classList.remove('random-on');
         $('random').setAttribute('aria-hidden', 'true');
+        window.rocketGame?.close();
         // The colour drains back into the 👋 while the page fades back in, and the terrain smooths out
         window.bgFx?.flood(false, floodFrom.x, floodFrom.y, DRAIN_MS);
         window.bgFx?.jag(0);
@@ -405,12 +372,10 @@
         $('name').addEventListener('click', e => { if (e.target.closest('.wave')) waveClicked(e.target.closest('.wave')); });
         $('name').addEventListener('pointerover', e => { if (e.target.closest('.wave')) window.bgFx?.warm(); });
         $('random-back').addEventListener('click', leaveRandom);
-        $('random-next').addEventListener('click', () => nextFact());
 
         window.addEventListener('keydown', e => {
             if (document.documentElement.classList.contains('random-on')) {
                 if (e.key === 'Escape') leaveRandom();
-                else if (e.key === 'ArrowRight') nextFact();
             } else if (isOpen('deep-dive')) {
                 if (e.key === 'Escape') closeDive();
                 else if (e.key === 'ArrowLeft') openDive(state.current - 1);
