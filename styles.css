@@ -1018,12 +1018,21 @@ body {
     cursor: pointer;
     transform-origin: 70% 75%;
     transition: scale 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-    animation: wave 1.2s ease-in-out 0.4s 2;
+    animation: wave-idle 2.6s ease-in-out 0.4s infinite;
     -webkit-tap-highlight-color: transparent;
 }
 
 .name:hover .wave {
     animation: wave 1.2s ease-in-out infinite;
+}
+
+/* The idle wave: a wave over the first half, then a rest, so it keeps inviting a click */
+@keyframes wave-idle {
+    0%, 50%, 100% { transform: rotate(0deg); }
+    8%, 24% { transform: rotate(16deg); }
+    16% { transform: rotate(-8deg); }
+    32% { transform: rotate(-4deg); }
+    40% { transform: rotate(10deg); }
 }
 
 .name .wave:focus-visible {
@@ -1520,7 +1529,25 @@ html.random-on .random {
     opacity: 0;
 }
 
-.random-back {
+.random-fact {
+    max-width: 34ch;
+    min-height: 3.2em;   /* room for two lines, so the buttons don't jump between facts */
+    margin: 0;
+    text-align: center;
+    font: 500 clamp(1.1rem, 2.4vw, 1.4rem)/1.45 var(--font);
+    text-wrap: balance;
+    opacity: 0;
+}
+
+.random-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    opacity: 0;
+}
+
+.random-btn {
     padding: 10px 18px;
     border: 1.5px solid currentColor;
     border-radius: 999px;
@@ -1528,15 +1555,24 @@ html.random-on .random {
     color: inherit;
     font: 500 0.85rem var(--mono);
     cursor: pointer;
-    opacity: 0;
-    transition: background-color 0.12s ease, color 0.12s ease;
+    transition: background-color 0.12s ease, color 0.12s ease, transform 0.12s ease;
 }
 
-.random-back:hover,
-.random-back:focus-visible {
+.random-btn--solid,
+.random-btn:hover,
+.random-btn:focus-visible {
     background: var(--bg);
     color: var(--accent);
     outline: none;
+}
+
+.random-btn--solid:hover,
+.random-btn--solid:focus-visible {
+    transform: translateY(-1px);
+}
+
+.random-btn:active {
+    transform: scale(0.97);
 }
 
 /* Visible without the animations too (reduced motion turns them off) */
@@ -1545,9 +1581,14 @@ html.random-on .random-title {
     animation: random-pop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
-html.random-on .random-back {
+html.random-on .random-fact {
     opacity: 1;
-    animation: random-fade 0.4s ease 0.35s both;
+    animation: random-fade 0.45s ease 0.3s both;
+}
+
+html.random-on .random-actions {
+    opacity: 1;
+    animation: random-fade 0.4s ease 0.45s both;
 }
 
 @keyframes random-pop {

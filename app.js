@@ -7,7 +7,7 @@
     // Default mosaic rhythm for tiles without a "Size:" line; repeats every 8 projects
     const SIZES = ['big', 'tall', 'wide', '', '', 'wide', 'tall', ''];
 
-    const state = { name: '', tagline: '', socials: [], about: [], projects: [], filter: 'all', current: -1 };
+    const state = { name: '', tagline: '', socials: [], about: [], projects: [], facts: [], filter: 'all', current: -1 };
 
     const $ = id => document.getElementById(id);
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -58,6 +58,7 @@
         state.socials = [...socials.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)].map(([, label, url]) => ({ label, url }));
         state.about = (bodies.home || []).map(l => l.trim().match(/^[-*]\s+(.*)/)).filter(Boolean).map(m => m[1]);
         state.projects = parseProjects((bodies.projects || []).join('\n'));
+        state.facts = (bodies.random || []).map(l => l.trim().match(/^[-*]\s+(.*)/)).filter(Boolean).map(m => m[1]);
     }
 
     // Each "### Title" block: an image line, "Key: value" lines, then free markdown for the deep dive
@@ -323,11 +324,39 @@
         window.bgFx?.flood(true, floodFrom.x, floodFrom.y, FLOOD_MS);
         document.documentElement.classList.add('engulfed');
         clearTimeout(randomTimer);
+        nextFact(false);
         randomTimer = setTimeout(() => {
             document.documentElement.classList.add('random-on');
             $('random').setAttribute('aria-hidden', 'false');
-            $('random-back').focus({ preventScroll: true });
+            $('random-next').focus({ preventScroll: true });
         }, FLOOD_MS - 150);
+    }
+
+    // Fun facts from info.md's "## Random" list, dealt from a shuffled deck so none repeats
+    // until they've all been shown
+    let deck = [];
+    function nextFact(animate = true) {
+        const el = $('random-fact');
+        if (!state.facts.length) { el.textContent = ''; return; }
+        if (!deck.length) {
+            deck = [...state.facts];
+            for (let i = deck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [deck[i], deck[j]] = [deck[j], deck[i]];
+            }
+            if (deck.length > 1 && deck[deck.length - 1] === el.dataset.fact) deck.unshift(deck.pop());   // no repeat across reshuffles
+        }
+        const fact = deck.pop();
+        el.dataset.fact = fact;
+        const show = () => { el.innerHTML = inline(fact); };
+        if (!animate || matchMedia('(prefers-reduced-motion: reduce)').matches) return show();
+        // Out (up and fade), swap, in (from below): transforms and opacity only
+        el.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(-10px)' }],
+                   { duration: 140, easing: 'ease-in' }).onfinish = () => {
+            show();
+            el.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }],
+                       { duration: 260, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' });
+        };
     }
 
     function leaveRandom() {
@@ -368,10 +397,12 @@
         $('name').addEventListener('click', e => { if (e.target.closest('.wave')) waveClicked(e.target.closest('.wave')); });
         $('name').addEventListener('pointerover', e => { if (e.target.closest('.wave')) window.bgFx?.warm(); });
         $('random-back').addEventListener('click', leaveRandom);
+        $('random-next').addEventListener('click', () => nextFact());
 
         window.addEventListener('keydown', e => {
             if (document.documentElement.classList.contains('random-on')) {
                 if (e.key === 'Escape') leaveRandom();
+                else if (e.key === 'ArrowRight') nextFact();
             } else if (isOpen('deep-dive')) {
                 if (e.key === 'Escape') closeDive();
                 else if (e.key === 'ArrowLeft') openDive(state.current - 1);

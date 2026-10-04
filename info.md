@@ -134,3 +134,22 @@ Link: [View the study](https://www.tqetchs.xyz/)
 - Trapped-ion quantum computers hold charged atoms in place with electric fields, and the shape of the trap decides how well it holds them. We simulated two kinds in COMSOL: a classic rod (Paul) trap and a flat surface trap.
 - I built a Python pipeline that drove COMSOL through parameter sweeps, using optimizers to tune the geometry and voltages for a deeper, more symmetric trap that uses less RF power.
 - Our surface trap ended up with twice the trap depth of the rod design, using about 32,700x less RF power.
+
+## Random
+<!-- Fun facts for the Random screen behind the 👋 (click it four times). One "- " line each; they come up shuffled. -->
+- Octopuses have three hearts and blue blood.
+- A day on Venus (243 Earth days) is longer than its year (225 Earth days).
+- Botanically, bananas are berries and strawberries aren't.
+- Wombats poop cubes.
+- The first computer "bug" was a real moth, taped into the Harvard Mark II's logbook in 1947.
+- Sharks have been around longer than trees.
+- A teaspoon of neutron star would weigh about a billion tonnes.
+- At its triple point, water can boil and freeze at the same time.
+- There are more possible games of chess than atoms in the observable universe.
+- A lightning bolt is about five times hotter than the surface of the Sun.
+- Sunlight takes about 8 minutes and 20 seconds to reach Earth.
+- The Moon drifts about 3.8 cm farther from Earth every year.
+- The Eiffel Tower grows up to about 15 cm taller in summer as the iron expands.
+- The word "robot" comes from the Czech *robota*, meaning forced labour.
+- Sea otters hold hands while they sleep so they don't drift apart.
+- Your phone has millions of times more memory than the computer that guided Apollo 11 to the Moon.

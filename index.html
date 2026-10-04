@@ -30,7 +30,7 @@
     <link rel="preload" href="fonts/dm-sans-400-700-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="fonts/space-mono-400-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="fonts.css?v=1">
-    <link rel="stylesheet" href="styles.css?v=754">
+    <link rel="stylesheet" href="styles.css?v=755">
 </head>
 
 <body>
@@ -112,11 +112,15 @@
     <!-- What's behind the 👋: wave at it enough and the map floods into this screen -->
     <section class="random" id="random" aria-hidden="true">
         <h2 class="random-title">Random</h2>
-        <button type="button" class="random-back" id="random-back">← Back</button>
+        <p class="random-fact" id="random-fact" aria-live="polite"></p>
+        <div class="random-actions">
+            <button type="button" class="random-btn random-btn--solid" id="random-next">Another one →</button>
+            <button type="button" class="random-btn" id="random-back">← Back</button>
+        </div>
     </section>
 
     <script src="bg.js?v=49"></script>
-    <script src="app.js?v=744"></script>
+    <script src="app.js?v=745"></script>
 </body>
 
 </html>
