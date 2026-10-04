@@ -25,7 +25,7 @@ Mechatronics engineering @UWaterloo.
 -->
 ## Projects
 ### Stroke Rehab Exoskeleton
-![](images/projects/exoskeleton.jpg)
+<!-- ![](images/projects/exoskeleton.jpg)   add this photo, then remove the comment markers -->
 Where: Personal
 Status: in progress
 Tags: hardware, firmware, software
@@ -37,7 +37,7 @@ Summary: An elbow exoskeleton that only helps as much as the patient needs, read
 - Right now I'm training a deep learning model on EEG to detect when someone is just thinking about moving, so the arm can kick in from intent alone. The ESP32 handles the wireless link for that.
 
 ### Scanning Tunneling Microscope
-![](images/projects/stm.jpg)
+<!-- ![](images/projects/stm.jpg)   add this photo, then remove the comment markers -->
 Where: Personal
 Status: in progress
 Tags: hardware, firmware
@@ -60,7 +60,7 @@ Summary: Test rigs I built at Soneil that put every EV charger through its safet
 - I wrote the firmware in C++ on an ESP32 and built dashboards on a Raspberry Pi, so an operator just hits start and the results get logged. Each charger now takes about two minutes.
 
 ### Third Thumb Prosthetic
-![](images/projects/third-thumb.jpg)
+<!-- ![](images/projects/third-thumb.jpg)   add this photo, then remove the comment markers -->
 Where: Personal
 Status: prototype
 Tags: hardware, firmware

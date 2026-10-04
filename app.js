@@ -334,7 +334,8 @@
     async function load() {
         bind();
         try {
-            const r = await fetch('info.md', { cache: 'no-cache' });
+            // index.html starts this request in <head>, so it downloads alongside the CSS and scripts
+            const r = (await window.infoRequest) || await fetch('info.md', { cache: 'no-cache' });
             if (!r.ok) throw new Error(r.status);
             parse(await r.text());
         } catch {
@@ -349,6 +350,9 @@
         await Promise.race([document.fonts?.ready, new Promise(r => setTimeout(r, 800))]);
         reveal();
         openFromHash();
+        // Decode the tile photos ahead of time, so opening the gallery doesn't stall on it
+        const idle = window.requestIdleCallback || (f => setTimeout(f, 200));
+        idle(() => $('masonry').querySelectorAll('img').forEach(img => img.decode?.().catch(() => {})));
     }
 
     // The card stays hidden until its content and fonts are in, then fades in once

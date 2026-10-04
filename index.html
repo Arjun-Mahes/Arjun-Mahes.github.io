@@ -14,6 +14,8 @@
             try { localStorage.removeItem('theme'); } catch (e) {}   // clear any choice saved by older versions
             document.documentElement.dataset.theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         })();
+        // Start fetching the page content now instead of after the scripts run (app.js picks it up)
+        window.infoRequest = fetch('info.md', { cache: 'no-cache' }).catch(() => null);
         // A photo that fails to load gets one retry (past any cached failure) before it's dropped
         function retryImg(img) {
             if (img.dataset.retried) return img.remove();
@@ -106,7 +108,7 @@
     </div>
 
     <script src="bg.js?v=48"></script>
-    <script src="app.js?v=741"></script>
+    <script src="app.js?v=742"></script>
 </body>
 
 </html>
