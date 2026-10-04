@@ -103,14 +103,17 @@
     const target = { x: 0, y: 0, on: 0 };
     const hill = { x: 0, y: 0, h: 0 };
 
-    // The terrain drifts slowly, so its heights are cached and refreshed a band at a time (or all
-    // at once if the lenses move); only the cursor hill is added fresh every frame.
-    // Smooth and jagged heights are cached separately, so morphing between them is just a blend.
-    let base = new Float32Array(0), baseJag = new Float32Array(0);
+    // The terrain drifts slowly, so its heights aren't recomputed every frame. Instead there are
+    // snapshots PERIOD seconds apart: every frame blends smoothly between the current two (A -> B),
+    // while the next one (C) is built a few rows per frame in the background. The motion is fluid at
+    // the full frame rate and each frame does a small, even share of the noise work.
+    // Smooth and jagged heights are kept separately, so morphing between them is just a blend too.
+    const PERIOD = 0.25;      // s between snapshots
+    const BUILD_FRAMES = 10;  // frames to build the next snapshot (a period is ~15 frames at 60 fps)
+    const snapshot = () => ({ s: new Float32Array(0), j: new Float32Array(0), t: 0, jag: false });
+    let A = snapshot(), B = snapshot(), C = snapshot();
     let sampleX = new Float32Array(0), sampleY = new Float32Array(0);
-    let baseTime = -1, baseKey = '', driftRow = 0, frame = 0;
-    const DRIFT_FRAMES = 4;   // drift bands per full refresh
-    const DRIFT_EVERY = 3;    // refresh one band every 3rd frame, so the whole map every ~0.2 s
+    let terrainReady = false, terrainKey = '', builtRows = 0;
 
     function setSize(w, h, dpr) {
         width = w;
@@ -121,13 +124,14 @@
         cols = Math.ceil(width / SETTINGS.cell) + 1;
         rows = Math.ceil(height / SETTINGS.cell) + 1;
         field = new Float32Array(cols * rows);
-        base = new Float32Array(cols * rows);
-        baseJag = new Float32Array(cols * rows);
-        jagFilled = 0;
+        for (const snap of [A, B, C]) {
+            snap.s = new Float32Array(cols * rows);
+            snap.j = new Float32Array(cols * rows);
+        }
         flood.painted = false;
         sampleX = new Float32Array(cols * rows);
         sampleY = new Float32Array(cols * rows);
-        baseTime = -1;
+        terrainReady = false;
     }
 
     // Visible magnifying tiles and frosted panels as rectangles, measured on the page side (see below)
@@ -170,8 +174,34 @@
 
     // How jagged the terrain is: 0 = smooth .. 1 = fully jagged, easing toward jagGoal.
     // The jagged heights are only computed once they're wanted ("warm", sent when the cursor reaches
-    // the 👋), and filled in by the normal drift bands, so the first click doesn't stall a frame.
-    let jag = 0, jagGoal = 0, jagOn = false, jagWarm = false, jagFilled = 0;
+    // the 👋), and come in with the next snapshots, so a click a moment later doesn't stall a frame.
+    let jag = 0, jagGoal = 0, jagOn = false, jagWarm = false;
+    function startJag() {
+        if (jagOn) return;
+        jagOn = true;
+        C.jag = true;
+        builtRows = 0;   // rebuild the snapshot in progress with jagged heights too
+    }
+
+    // Heights for rows j0..j1 of a snapshot at its time. `positions` also (re)computes where each
+    // grid point samples the map (lenses move them); `smooth` / `jagged` pick which heights to fill.
+    function fillRows(snap, j0, j1, { positions = false, smooth = true, jagged = snap.jag } = {}) {
+        const { cell, scale } = SETTINGS;
+        const z = snap.t * SETTINGS.speed;
+        const glass = lensCache;
+        for (let j = j0, k = j0 * cols; j < j1; j++) {
+            for (let i = 0; i < cols; i++, k++) {
+                if (positions) {
+                    const [px, py] = glass.length ? magnified(i * cell, j * cell, glass) : [i * cell, j * cell];
+                    sampleX[k] = px;
+                    sampleY[k] = py;
+                }
+                const x = sampleX[k] * scale, y = sampleY[k] * scale;
+                if (smooth) snap.s[k] = elevation(x, y, z);
+                if (jagged) snap.j[k] = jaggedElevation(x, y, z);
+            }
+        }
+    }
 
     // The flood: solid colour spreading from (x, y). Its edge is the zero contour of
     // (reach - distance) / FLOOD_EDGE + terrain height, so it advances along the map's own contours.
@@ -182,8 +212,7 @@
 
     let lastHill = '', lastColour = '';
     function draw(time, now) {
-        const { cell, scale, step, hillHeight, hillSize, follow } = SETTINGS;
-        const z = time * SETTINGS.speed;
+        const { cell, step, hillHeight, hillSize, follow } = SETTINGS;
 
         // Flood progress
         const ft = Math.min(1, (now - flood.t0) / flood.ms);
@@ -195,7 +224,7 @@
                 ctx.fillStyle = flood.colour;
                 ctx.fillRect(0, 0, width, height);
                 flood.painted = true;
-                baseTime = -1;   // the terrain went stale underneath; rebuild when it's uncovered
+                terrainReady = false;   // the terrain went stale underneath; rebuild when it's uncovered
             }
             return;
         }
@@ -204,8 +233,7 @@
         // Ease the jaggedness toward its goal; once back at smooth, stop computing jagged heights
         const morphing = Math.abs(jagGoal - jag) > 0.001;
         jag = morphing ? jag + (jagGoal - jag) * 0.08 : jagGoal;
-        if (jag === 0 && jagGoal === 0 && !jagWarm) { jagOn = false; jagFilled = 0; }
-        if (jagGoal > 0 && jagFilled < rows) baseTime = -1;   // wanted before the warm-up finished: fill now
+        if (jag === 0 && jagGoal === 0 && !jagWarm) jagOn = false;
 
         hill.x += (target.x - hill.x) * follow;
         hill.y += (target.y - hill.y) * follow;
@@ -213,46 +241,59 @@
         const twoSigma2 = 2 * hillSize * hillSize;
         const glass = lensCache;
 
-        // Terrain heights (cached), seen through any lenses. A full rebuild takes ~10 ms, so the slow
-        // drift is refreshed a band of rows per frame instead (the whole map every DRIFT_FRAMES
-        // frames), which keeps every frame cheap. Lens moves still rebuild at once.
+        // Terrain snapshots, seen through any lenses. A lens move (or the first frame, a resize, or
+        // a long gap) rebuilds the current one at once; B starts as a copy, so the drift resumes
+        // smoothly with the next snapshot.
         const key = glass.map(l => `${l.x0 | 0},${l.y0 | 0},${l.x1 | 0},${l.y1 | 0}`).join(';');
-        const full = baseTime < 0 || key !== baseKey || time < baseTime;
-        if (full) driftRow = 0;
-        // While the cursor is still, this means the canvas only repaints ~20x a second
-        const drifting = !full && time !== baseTime && frame++ % DRIFT_EVERY === 0;
+        const full = !terrainReady || key !== terrainKey || time < A.t || time >= C.t;
+        if (full) {
+            A.t = time;
+            A.jag = jagOn;
+            fillRows(A, 0, rows, { positions: true });
+            B.s.set(A.s);
+            B.j.set(A.j);
+            B.t = time + PERIOD;
+            B.jag = jagOn;
+            C.t = B.t + PERIOD;
+            C.jag = jagOn;
+            builtRows = 0;
+            terrainKey = key;
+            terrainReady = true;
+        } else if (!still) {
+            if (builtRows < rows) {
+                const j1 = Math.min(rows, builtRows + Math.ceil(rows / BUILD_FRAMES));
+                fillRows(C, builtRows, j1);
+                builtRows = j1;
+            }
+            if (time >= B.t) {
+                if (builtRows < rows) fillRows(C, builtRows, rows);   // a slow frame: finish it now
+                [A, B, C] = [B, C, A];
+                C.t = B.t + PERIOD;
+                C.jag = jagOn;
+                builtRows = 0;
+            }
+        }
+        // Jaggedness wanted before the warm-up snapshots arrived: fill them in now (one heavier frame)
+        if ((jag > 0 || jagGoal > 0) && !(A.jag && B.jag)) {
+            for (const snap of [A, B]) if (!snap.jag) { fillRows(snap, 0, rows, { smooth: false, jagged: true }); snap.jag = true; }
+        }
 
-        // Nothing moved since the last frame (terrain still, hill and colours settled): leave the canvas as is
+        // Nothing moved since the last frame (terrain held still, hill and colours settled): leave the canvas as is
         const hillNow = hill.h > 0.01 ? `${hill.x.toFixed(1)},${hill.y.toFixed(1)},${hill.h.toFixed(3)}` : '';
         blendColours(0.12);   // ease toward the theme's colours
         const colourNow = colours.line + colours.index;
-        if (!full && !drifting && !morphing && !flooding && hillNow === lastHill && colourNow === lastColour && frostKey === lastFrost) return;
+        if (still && !full && !morphing && !flooding && hillNow === lastHill && colourNow === lastColour && frostKey === lastFrost) return;
         lastHill = hillNow;
         lastColour = colourNow;
         lastFrost = frostKey;
 
-        if (full || drifting) {
-            const band = Math.ceil(rows / DRIFT_FRAMES);
-            const j0 = full ? 0 : driftRow, j1 = full ? rows : Math.min(rows, driftRow + band);
-            for (let j = j0, k = j0 * cols; j < j1; j++) {
-                for (let i = 0; i < cols; i++, k++) {
-                    const [px, py] = glass.length ? magnified(i * cell, j * cell, glass) : [i * cell, j * cell];
-                    sampleX[k] = px;
-                    sampleY[k] = py;
-                    base[k] = elevation(px * scale, py * scale, z);
-                    if (jagOn) baseJag[k] = jaggedElevation(px * scale, py * scale, z);
-                }
-            }
-            if (jagOn) jagFilled = full ? rows : j0 <= jagFilled ? Math.max(jagFilled, j1) : jagFilled;
-            driftRow = full || j1 >= rows ? 0 : j1;
-            baseTime = time;
-            baseKey = key;
-        }
-
-        // Blend in the jagged terrain, plus the cursor hill, every frame
+        // Between snapshots A and B, blend in the jagged terrain, plus the cursor hill, every frame
+        const f = Math.min(1, Math.max(0, (time - A.t) / (B.t - A.t)));
         const smooth = 1 - jag;
+        const As = A.s, Bs = B.s, Aj = A.j, Bj = B.j;
         for (let k = 0; k < field.length; k++) {
-            let e = jag > 0 ? base[k] * smooth + baseJag[k] * jag : base[k];
+            let e = As[k] + (Bs[k] - As[k]) * f;
+            if (jag > 0) e = e * smooth + (Aj[k] + (Bj[k] - Aj[k]) * f) * jag;
             if (hill.h > 0.01) {
                 const dx = sampleX[k] - hill.x, dy = sampleY[k] - hill.y;
                 e += hill.h * Math.exp(-(dx * dx + dy * dy) / twoSigma2);
@@ -412,13 +453,12 @@
                 break;
             case 'leave': target.on = 0; break;
             case 'warm':
-                if (!jagOn) { jagFilled = 0; driftRow = 0; }
                 jagWarm = true;
-                jagOn = true;
+                startJag();
                 break;
             case 'jag':
                 jagGoal = m.level;
-                if (m.level > 0) jagOn = true;
+                if (m.level > 0) startJag();
                 else jagWarm = false;
                 break;
             case 'flood':
