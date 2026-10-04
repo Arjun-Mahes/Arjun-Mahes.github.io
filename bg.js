@@ -111,7 +111,8 @@
     // The terrain drifts slowly, so its heights are cached and rebuilt ~20x a second (or straight
     // away if the lenses move); only the cursor hill is added fresh every frame.
     let base = new Float32Array(0), sampleX = new Float32Array(0), sampleY = new Float32Array(0);
-    let baseTime = -1, baseKey = '';
+    let baseTime = -1, baseKey = '', driftRow = 0;
+    const DRIFT_FRAMES = 6;
 
     function resize() {
         const dpr = Math.min(devicePixelRatio || 1, 2);
@@ -129,8 +130,19 @@
         baseTime = -1;
     }
 
-    // Visible magnifying tiles as rectangles
-    function lenses() {
+    // Visible magnifying tiles as rectangles. Measuring them forces a layout, so it's only done
+    // for a second after something could have moved them (scroll, click, key, resize, the gallery's
+    // rise animation), plus a slow safety refresh; the rest of the time the last measurement is reused.
+    let lensCache = [], lensUntil = 0, lensAt = -1e9;
+    const lensesMoved = () => { lensUntil = performance.now() + 1000; };
+    for (const type of ['scroll', 'wheel', 'click', 'keydown', 'resize', 'hashchange', 'animationend'])
+        addEventListener(type, lensesMoved, { capture: true, passive: true });
+    function lenses(now) {
+        if (now > lensUntil && now - lensAt < 500) return lensCache;
+        lensAt = now;
+        return (lensCache = measureLenses());
+    }
+    function measureLenses() {
         const list = [];
         for (const el of document.querySelectorAll('[data-magnify]')) {
             if (el.hidden || (el.checkVisibility && !el.checkVisibility({ visibilityProperty: true }))) continue;
@@ -189,7 +201,8 @@
         return sum * 2.3 - 1.15;    // map into the contour range
     }
 
-    function draw(time) {
+    let lastHill = '', lastColour = '';
+    function draw(time, now) {
         const { cell, scale, step, hillHeight, hillSize, follow } = SETTINGS;
         const z = time * SETTINGS.speed;
 
@@ -197,15 +210,30 @@
         hill.y += (target.y - hill.y) * follow;
         hill.h += (target.on * hillHeight - hill.h) * 0.16;
         const twoSigma2 = 2 * hillSize * hillSize;
-        const glass = lenses();
+        const glass = lenses(now);
         const morphing = Math.abs(jagGoal - jag) > 0.001;
         if (morphing) jag += (jagGoal - jag) * SETTINGS.morphSpeed;
         else jag = jagGoal;
 
-        // Terrain heights (cached), seen through any lenses
+        // Terrain heights (cached), seen through any lenses. A full rebuild takes ~10 ms, so the slow
+        // drift is refreshed a band of rows per frame instead (the whole map every DRIFT_FRAMES
+        // frames), which keeps every frame cheap. Lens moves and terrain morphs still rebuild at once.
         const key = glass.map(l => `${l.x0 | 0},${l.y0 | 0},${l.x1 | 0},${l.y1 | 0}`).join(';');
-        if (morphing || baseTime < 0 || key !== baseKey || time - baseTime > 0.05 || time < baseTime) {
-            for (let j = 0, k = 0; j < rows; j++) {
+        const full = morphing || baseTime < 0 || key !== baseKey || time < baseTime;
+        const drifting = !full && time !== baseTime;
+
+        // Nothing moved since the last frame (terrain still, hill and colours settled): leave the canvas as is
+        const hillNow = hill.h > 0.01 ? `${hill.x.toFixed(1)},${hill.y.toFixed(1)},${hill.h.toFixed(3)}` : '';
+        blendColours(0.12);   // ease toward the theme's colours
+        const colourNow = colours.line + colours.index;
+        if (!full && !drifting && hillNow === lastHill && colourNow === lastColour) return;
+        lastHill = hillNow;
+        lastColour = colourNow;
+
+        if (full || drifting) {
+            const band = Math.ceil(rows / DRIFT_FRAMES);
+            const j0 = full ? 0 : driftRow, j1 = full ? rows : Math.min(rows, driftRow + band);
+            for (let j = j0, k = j0 * cols; j < j1; j++) {
                 for (let i = 0; i < cols; i++, k++) {
                     const [px, py] = glass.length ? magnified(i * cell, j * cell, glass) : [i * cell, j * cell];
                     sampleX[k] = px;
@@ -213,6 +241,7 @@
                     base[k] = elevation(px * scale, py * scale, z);
                 }
             }
+            driftRow = full || j1 >= rows ? 0 : j1;
             baseTime = time;
             baseKey = key;
         }
@@ -256,7 +285,6 @@
         ctx.clearRect(0, 0, width, height);
         ctx.lineCap = 'round';
         ctx.lineWidth = 1;
-        blendColours(0.12);   // ease toward the theme's colours
         ctx.strokeStyle = colours.line;
         ctx.stroke(minor);
         ctx.lineWidth = 1.5;
@@ -293,8 +321,10 @@
     let last = 0;
     (function loop(now) {
         requestAnimationFrame(loop);
-        if (now - last < 1000 / SETTINGS.fps) return;
+        // A couple of ms of slack: frames on a 60 Hz screen arrive every ~16.6 ms, and a strict
+        // check would randomly skip some of them
+        if (now - last < 1000 / SETTINGS.fps - 2) return;
         last = now;
-        draw(still ? 0 : now / 1000);
+        draw(still ? 0 : now / 1000, now);
     })(0);
 })();
