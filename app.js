@@ -102,7 +102,7 @@
 
     // ─── Landing card ───
     function renderLanding() {
-        $('name').textContent = state.name;
+        $('name').innerHTML = `${esc(state.name)}<button type="button" class="wave" id="wave" aria-label="Wave">👋</button>`;
         document.title = state.name;
         $('tagline').innerHTML = inline(state.tagline);
         // A leading emoji gets its own span so it can bounce on hover
@@ -295,6 +295,57 @@
         paint();
     }
 
+    // ─── The 👋 easter egg ───
+    // Each wave makes the background terrain more jagged (bg.js); the last one floods the screen
+    // with solid colour from the 👋 outward, the page fades away and the Random screen pops up.
+    // Everything here animates only opacity and transforms, and the flood is drawn in bg.js's
+    // worker, so the page itself does almost no work during it.
+    const JAG_STEPS = 3;          // waves that roughen the terrain; the next one floods
+    const FLOOD_MS = 1300, DRAIN_MS = 900;
+    let waves = 0, floodFrom = null, randomTimer = 0;
+
+    const WAVE = [
+        { transform: 'rotate(0deg)' }, { transform: 'rotate(18deg)' }, { transform: 'rotate(-10deg)' },
+        { transform: 'rotate(14deg)' }, { transform: 'rotate(-4deg)' }, { transform: 'rotate(0deg)' }
+    ];
+
+    function waveClicked(hand) {
+        if (floodFrom) return;
+        waves++;
+        if (!matchMedia('(prefers-reduced-motion: reduce)').matches) hand.animate(WAVE, { duration: 600, easing: 'ease-in-out' });
+        hand.style.scale = String(1 + 0.18 * Math.min(waves, JAG_STEPS));
+        if (waves <= JAG_STEPS) {
+            window.bgFx?.jag(waves / JAG_STEPS);
+            return;
+        }
+        const r = hand.getBoundingClientRect();
+        floodFrom = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+        window.bgFx?.flood(true, floodFrom.x, floodFrom.y, FLOOD_MS);
+        document.documentElement.classList.add('engulfed');
+        clearTimeout(randomTimer);
+        randomTimer = setTimeout(() => {
+            document.documentElement.classList.add('random-on');
+            $('random').setAttribute('aria-hidden', 'false');
+            $('random-back').focus({ preventScroll: true });
+        }, FLOOD_MS - 150);
+    }
+
+    function leaveRandom() {
+        if (!floodFrom) return;
+        const root = document.documentElement;
+        clearTimeout(randomTimer);
+        root.classList.remove('random-on');
+        $('random').setAttribute('aria-hidden', 'true');
+        // The colour drains back into the 👋 while the page fades back in, and the terrain smooths out
+        window.bgFx?.flood(false, floodFrom.x, floodFrom.y, DRAIN_MS);
+        window.bgFx?.jag(0);
+        randomTimer = setTimeout(() => root.classList.remove('engulfed'), 200);
+        const hand = $('wave');
+        if (hand) { hand.style.scale = '1'; hand.focus({ preventScroll: true }); }
+        waves = 0;
+        floodFrom = null;
+    }
+
     // ─── Events ───
     function bind() {
         initThemeSwitch();
@@ -313,8 +364,15 @@
             if (tile) openDive(Number(tile.dataset.index));
         });
 
+        // The 👋 (rendered with the name, so delegated)
+        $('name').addEventListener('click', e => { if (e.target.closest('.wave')) waveClicked(e.target.closest('.wave')); });
+        $('name').addEventListener('pointerover', e => { if (e.target.closest('.wave')) window.bgFx?.warm(); });
+        $('random-back').addEventListener('click', leaveRandom);
+
         window.addEventListener('keydown', e => {
-            if (isOpen('deep-dive')) {
+            if (document.documentElement.classList.contains('random-on')) {
+                if (e.key === 'Escape') leaveRandom();
+            } else if (isOpen('deep-dive')) {
                 if (e.key === 'Escape') closeDive();
                 else if (e.key === 'ArrowLeft') openDive(state.current - 1);
                 else if (e.key === 'ArrowRight') openDive(state.current + 1);

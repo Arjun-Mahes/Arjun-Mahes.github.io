@@ -2,6 +2,8 @@
 // The cursor is a hill: the terrain rises under it, so the lines ring around it and follow it.
 // Drawn with marching squares over Perlin noise; every fifth line is a darker "index contour".
 // Elements marked data-magnify (the gallery tiles) act as magnifying lenses over the map.
+// Waving at it (window.bgFx, driven by app.js) makes the terrain jagged, and finally floods the
+// screen with solid colour from the 👋 outward, along the terrain's own contours.
 //
 // The drawing runs in a Web Worker on an OffscreenCanvas (this same file is loaded as the worker),
 // so it never competes with clicks, hovers and scrolling on the page. The page side only measures
@@ -103,7 +105,9 @@
 
     // The terrain drifts slowly, so its heights are cached and refreshed a band at a time (or all
     // at once if the lenses move); only the cursor hill is added fresh every frame.
-    let base = new Float32Array(0), sampleX = new Float32Array(0), sampleY = new Float32Array(0);
+    // Smooth and jagged heights are cached separately, so morphing between them is just a blend.
+    let base = new Float32Array(0), baseJag = new Float32Array(0);
+    let sampleX = new Float32Array(0), sampleY = new Float32Array(0);
     let baseTime = -1, baseKey = '', driftRow = 0, frame = 0;
     const DRIFT_FRAMES = 4;   // drift bands per full refresh
     const DRIFT_EVERY = 3;    // refresh one band every 3rd frame, so the whole map every ~0.2 s
@@ -118,6 +122,9 @@
         rows = Math.ceil(height / SETTINGS.cell) + 1;
         field = new Float32Array(cols * rows);
         base = new Float32Array(cols * rows);
+        baseJag = new Float32Array(cols * rows);
+        jagFilled = 0;
+        flood.painted = false;
         sampleX = new Float32Array(cols * rows);
         sampleY = new Float32Array(cols * rows);
         baseTime = -1;
@@ -144,10 +151,61 @@
         return noise(x, y, z) + 0.45 * noise(x * 2.1 + 17, y * 2.1 + 5, z * 1.3);
     }
 
+    // Jagged terrain: ridged multifractal noise. Each octave is folded (1 - |n|) so it peaks in sharp
+    // crests, squared to sharpen them, and weighted by the octave above so detail piles up on the
+    // ridges, which is what makes contour lines bunch on steep slopes and turn jagged.
+    function jaggedElevation(x, y, z) {
+        let sum = 0, amp = 0.62, freq = 0.9, weight = 1;
+        for (let o = 0; o < 5; o++) {
+            let ridge = 1 - Math.abs(noise(x * freq + o * 17.3, y * freq + o * 31.7, z * (1 + o * 0.35)) * 1.4);
+            ridge = Math.max(0, ridge);
+            ridge *= ridge * weight;
+            weight = Math.min(1, ridge * 1.8);
+            sum += ridge * amp;
+            freq *= 2.05;
+            amp *= 0.5;
+        }
+        return sum * 2.3 - 1.15;    // map into the contour range
+    }
+
+    // How jagged the terrain is: 0 = smooth .. 1 = fully jagged, easing toward jagGoal.
+    // The jagged heights are only computed once they're wanted ("warm", sent when the cursor reaches
+    // the 👋), and filled in by the normal drift bands, so the first click doesn't stall a frame.
+    let jag = 0, jagGoal = 0, jagOn = false, jagWarm = false, jagFilled = 0;
+
+    // The flood: solid colour spreading from (x, y). Its edge is the zero contour of
+    // (reach - distance) / FLOOD_EDGE + terrain height, so it advances along the map's own contours.
+    // p goes 0 (none) .. 1 (whole screen), timed by the page so the page can stage around it.
+    const FLOOD_EDGE = 90;   // px: how ragged the flood's edge is
+    const flood = { p: 0, from: 0, goal: 0, t0: 0, ms: 1, x: 0, y: 0, colour: '#A84825', painted: false };
+    const easeInOut = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
     let lastHill = '', lastColour = '';
-    function draw(time) {
+    function draw(time, now) {
         const { cell, scale, step, hillHeight, hillSize, follow } = SETTINGS;
         const z = time * SETTINGS.speed;
+
+        // Flood progress
+        const ft = Math.min(1, (now - flood.t0) / flood.ms);
+        flood.p = flood.from + (flood.goal - flood.from) * easeInOut(ft);
+        const flooding = ft < 1 || flood.p > 0;
+        if (flood.p >= 1) {
+            // Fully covered: one solid fill, then nothing to do until the flood recedes
+            if (!flood.painted) {
+                ctx.fillStyle = flood.colour;
+                ctx.fillRect(0, 0, width, height);
+                flood.painted = true;
+                baseTime = -1;   // the terrain went stale underneath; rebuild when it's uncovered
+            }
+            return;
+        }
+        flood.painted = false;
+
+        // Ease the jaggedness toward its goal; once back at smooth, stop computing jagged heights
+        const morphing = Math.abs(jagGoal - jag) > 0.001;
+        jag = morphing ? jag + (jagGoal - jag) * 0.08 : jagGoal;
+        if (jag === 0 && jagGoal === 0 && !jagWarm) { jagOn = false; jagFilled = 0; }
+        if (jagGoal > 0 && jagFilled < rows) baseTime = -1;   // wanted before the warm-up finished: fill now
 
         hill.x += (target.x - hill.x) * follow;
         hill.y += (target.y - hill.y) * follow;
@@ -160,6 +218,7 @@
         // frames), which keeps every frame cheap. Lens moves still rebuild at once.
         const key = glass.map(l => `${l.x0 | 0},${l.y0 | 0},${l.x1 | 0},${l.y1 | 0}`).join(';');
         const full = baseTime < 0 || key !== baseKey || time < baseTime;
+        if (full) driftRow = 0;
         // While the cursor is still, this means the canvas only repaints ~20x a second
         const drifting = !full && time !== baseTime && frame++ % DRIFT_EVERY === 0;
 
@@ -167,7 +226,7 @@
         const hillNow = hill.h > 0.01 ? `${hill.x.toFixed(1)},${hill.y.toFixed(1)},${hill.h.toFixed(3)}` : '';
         blendColours(0.12);   // ease toward the theme's colours
         const colourNow = colours.line + colours.index;
-        if (!full && !drifting && hillNow === lastHill && colourNow === lastColour && frostKey === lastFrost) return;
+        if (!full && !drifting && !morphing && !flooding && hillNow === lastHill && colourNow === lastColour && frostKey === lastFrost) return;
         lastHill = hillNow;
         lastColour = colourNow;
         lastFrost = frostKey;
@@ -181,16 +240,19 @@
                     sampleX[k] = px;
                     sampleY[k] = py;
                     base[k] = elevation(px * scale, py * scale, z);
+                    if (jagOn) baseJag[k] = jaggedElevation(px * scale, py * scale, z);
                 }
             }
+            if (jagOn) jagFilled = full ? rows : j0 <= jagFilled ? Math.max(jagFilled, j1) : jagFilled;
             driftRow = full || j1 >= rows ? 0 : j1;
             baseTime = time;
             baseKey = key;
         }
 
-        // Plus the cursor hill, every frame
+        // Blend in the jagged terrain, plus the cursor hill, every frame
+        const smooth = 1 - jag;
         for (let k = 0; k < field.length; k++) {
-            let e = base[k];
+            let e = jag > 0 ? base[k] * smooth + baseJag[k] * jag : base[k];
             if (hill.h > 0.01) {
                 const dx = sampleX[k] - hill.x, dy = sampleY[k] - hill.y;
                 e += hill.h * Math.exp(-(dx * dx + dy * dy) / twoSigma2);
@@ -226,11 +288,64 @@
 
         ctx.clearRect(0, 0, width, height);
         ctx.lineCap = 'round';
-        if (!frostCache.length) {
-            strokeLines(minor, major, 1, 1);
-            return;
-        }
+        if (!frostCache.length) strokeLines(minor, major, 1, 1);
+        else drawFrosted(minor, major);
+        if (flooding) drawFlood();
+    }
 
+    // Fill everything on the flooded side of the flood's edge. Marching squares again: each cell is
+    // fully in (merged into one rectangle per run along the row), out, or cut by the edge (its
+    // inside part as a small polygon). All of it goes into one path and one fill, so the pieces
+    // join without seams.
+    function drawFlood() {
+        const s = SETTINGS.cell;
+        const maxD = Math.max(Math.hypot(flood.x, flood.y), Math.hypot(width - flood.x, flood.y),
+                              Math.hypot(flood.x, height - flood.y), Math.hypot(width - flood.x, height - flood.y));
+        const margin = 1.6 * FLOOD_EDGE;   // terrain heights stay within about ±1.5
+        const reach = flood.p * (maxD + 2 * margin) - margin;
+        const g = (k, x, y) => (reach - Math.hypot(x - flood.x, y - flood.y)) / FLOOD_EDGE + field[k];
+
+        const path = new Path2D();
+        const gRow = new Float32Array(cols), gNext = new Float32Array(cols);
+        for (let i = 0; i < cols; i++) gRow[i] = g(i, i * s, 0);
+        for (let j = 0; j < rows - 1; j++) {
+            const y0 = j * s;
+            for (let i = 0; i < cols; i++) gNext[i] = g((j + 1) * cols + i, i * s, y0 + s);
+            let run = -1;
+            for (let i = 0; i < cols - 1; i++) {
+                const a = gRow[i], b = gRow[i + 1], c = gNext[i + 1], d = gNext[i];
+                const inside = a > 0 && b > 0 && c > 0 && d > 0;
+                if (inside) { if (run < 0) run = i; continue; }
+                if (run >= 0) { path.rect(run * s, y0, (i - run) * s, s); run = -1; }
+                if (a <= 0 && b <= 0 && c <= 0 && d <= 0) continue;
+                cellPolygon(path, a, b, c, d, i * s, y0, s);
+            }
+            if (run >= 0) path.rect(run * s, y0, (cols - 1 - run) * s, s);
+            gRow.set(gNext);
+        }
+        ctx.fillStyle = flood.colour;
+        ctx.fill(path);
+    }
+
+    // The part of one cell where the value is positive: walk the corners clockwise (top-left,
+    // top-right, bottom-right, bottom-left), keeping inside corners and adding a point wherever an
+    // edge crosses zero.
+    function cellPolygon(path, a, b, c, d, x0, y0, s) {
+        const v = [a, b, c, d], xs = [x0, x0 + s, x0 + s, x0], ys = [y0, y0, y0 + s, y0 + s];
+        let first = true;
+        const to = (x, y) => { if (first) { path.moveTo(x, y); first = false; } else path.lineTo(x, y); };
+        for (let n = 0; n < 4; n++) {
+            const m = (n + 1) & 3;
+            if (v[n] > 0) to(xs[n], ys[n]);
+            if ((v[n] > 0) !== (v[m] > 0)) {
+                const t = v[n] / (v[n] - v[m]);
+                to(xs[n] + (xs[m] - xs[n]) * t, ys[n] + (ys[m] - ys[n]) * t);
+            }
+        }
+        path.closePath();
+    }
+
+    function drawFrosted(minor, major) {
         // Frosted glass, drawn here instead of with CSS backdrop-filter (which would re-blur the
         // panel area every frame, since the lines behind it never stop moving). Outside the panels
         // the lines are crisp; behind them each line is drawn wide and faint twice, which looks like
@@ -296,6 +411,25 @@
                 target.on = 1;
                 break;
             case 'leave': target.on = 0; break;
+            case 'warm':
+                if (!jagOn) { jagFilled = 0; driftRow = 0; }
+                jagWarm = true;
+                jagOn = true;
+                break;
+            case 'jag':
+                jagGoal = m.level;
+                if (m.level > 0) jagOn = true;
+                else jagWarm = false;
+                break;
+            case 'flood':
+                flood.from = flood.p;
+                flood.goal = m.grow ? 1 : 0;
+                flood.t0 = performance.now();
+                flood.ms = m.ms;
+                flood.x = m.x;
+                flood.y = m.y;
+                if (m.colour) flood.colour = m.colour;
+                break;
         }
     }
 
@@ -309,7 +443,7 @@
             // check would randomly skip some of them
             if (now - last < 1000 / SETTINGS.fps - 2) return;
             last = now;
-            draw(still ? 0 : now / 1000);
+            draw(still ? 0 : now / 1000, now);
         })(0);
     }
 
@@ -388,5 +522,13 @@
     addEventListener('resize', () => { send({ type: 'size', ...size() }); lensesMoved(); });
 
     addEventListener('pointermove', e => send({ type: 'pointer', x: e.clientX, y: e.clientY }), { passive: true });
+
+    // For app.js: the 👋 easter egg
+    window.bgFx = {
+        warm: () => send({ type: 'warm' }),
+        jag: level => send({ type: 'jag', level }),
+        flood: (grow, x, y, ms) => send({ type: 'flood', grow, x, y, ms,
+                                          colour: getComputedStyle(root).getPropertyValue('--accent').trim() }),
+    };
     root.addEventListener('pointerleave', () => send({ type: 'leave' }));
 })();
