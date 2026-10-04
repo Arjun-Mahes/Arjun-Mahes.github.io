@@ -107,8 +107,9 @@
     // The terrain drifts slowly, so its heights are cached and refreshed a band at a time (or all
     // at once if the lenses move); only the cursor hill is added fresh every frame.
     let base = new Float32Array(0), sampleX = new Float32Array(0), sampleY = new Float32Array(0);
-    let baseTime = -1, baseKey = '', driftRow = 0;
-    const DRIFT_FRAMES = 6;
+    let baseTime = -1, baseKey = '', driftRow = 0, frame = 0;
+    const DRIFT_FRAMES = 4;   // drift bands per full refresh
+    const DRIFT_EVERY = 3;    // refresh one band every 3rd frame, so the whole map every ~0.2 s
 
     function setSize(w, h, dpr) {
         width = w;
@@ -125,8 +126,8 @@
         baseTime = -1;
     }
 
-    // Visible magnifying tiles as rectangles, measured on the page side (see below)
-    let lensCache = [];
+    // Visible magnifying tiles and frosted panels as rectangles, measured on the page side (see below)
+    let lensCache = [], frostCache = [], frostKey = '', lastFrost = '';
 
     // Inside a lens, sample the map closer to the lens centre, so it shows up enlarged.
     // The zoom is strongest in the middle and eases toward the rim, like a convex lens.
@@ -193,15 +194,17 @@
         // frames), which keeps every frame cheap. Lens moves and terrain morphs still rebuild at once.
         const key = glass.map(l => `${l.x0 | 0},${l.y0 | 0},${l.x1 | 0},${l.y1 | 0}`).join(';');
         const full = morphing || baseTime < 0 || key !== baseKey || time < baseTime;
-        const drifting = !full && time !== baseTime;
+        // While the cursor is still, this means the canvas only repaints ~20x a second
+        const drifting = !full && time !== baseTime && frame++ % DRIFT_EVERY === 0;
 
         // Nothing moved since the last frame (terrain still, hill and colours settled): leave the canvas as is
         const hillNow = hill.h > 0.01 ? `${hill.x.toFixed(1)},${hill.y.toFixed(1)},${hill.h.toFixed(3)}` : '';
         blendColours(0.12);   // ease toward the theme's colours
         const colourNow = colours.line + colours.index;
-        if (!full && !drifting && hillNow === lastHill && colourNow === lastColour) return;
+        if (!full && !drifting && hillNow === lastHill && colourNow === lastColour && frostKey === lastFrost) return;
         lastHill = hillNow;
         lastColour = colourNow;
+        lastFrost = frostKey;
 
         if (full || drifting) {
             const band = Math.ceil(rows / DRIFT_FRAMES);
@@ -257,11 +260,43 @@
 
         ctx.clearRect(0, 0, width, height);
         ctx.lineCap = 'round';
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = colours.line;
+        if (!frostCache.length) {
+            strokeLines(minor, major, 1, 1);
+            return;
+        }
+
+        // Frosted glass, drawn here instead of with CSS backdrop-filter (which would re-blur the
+        // panel area every frame, since the lines behind it never stop moving). Outside the panels
+        // the lines are crisp; behind them each line is drawn wide and faint twice, which looks like
+        // a ~2.5 px blur at a fraction of the cost.
+        const panels = new Path2D();
+        for (const f of frostCache) {
+            if (panels.roundRect) panels.roundRect(f.x0, f.y0, f.x1 - f.x0, f.y1 - f.y0, f.r);
+            else panels.rect(f.x0, f.y0, f.x1 - f.x0, f.y1 - f.y0);
+        }
+        const outside = new Path2D();
+        outside.rect(0, 0, width, height);
+        outside.addPath(panels);
+
+        ctx.save();
+        ctx.clip(outside, 'evenodd');
+        strokeLines(minor, major, 1, 1);
+        ctx.restore();
+
+        ctx.save();
+        ctx.clip(panels);
+        strokeLines(minor, major, 6, 0.13);
+        strokeLines(minor, major, 3, 0.13);
+        ctx.restore();
+    }
+
+    const rgba = ([r, g, b, a], k) => `rgba(${r | 0}, ${g | 0}, ${b | 0}, ${(a * k).toFixed(3)})`;
+    function strokeLines(minor, major, width, alpha) {
+        ctx.lineWidth = width;
+        ctx.strokeStyle = alpha === 1 ? colours.line : rgba(colourNow.line, alpha);
         ctx.stroke(minor);
-        ctx.lineWidth = 1.5;
-        ctx.strokeStyle = colours.index;
+        ctx.lineWidth = width * 1.5;
+        ctx.strokeStyle = alpha === 1 ? colours.index : rgba(colourNow.index, alpha);
         ctx.stroke(major);
     }
 
@@ -283,7 +318,11 @@
                 break;
             case 'size': setSize(m.w, m.h, m.dpr); break;
             case 'colours': setColours(m.colours); break;
-            case 'lenses': lensCache = m.lenses; break;
+            case 'lenses':
+                lensCache = m.lenses;
+                frostCache = m.frost;
+                frostKey = m.frost.map(f => `${f.x0},${f.y0},${f.x1},${f.y1}`).join(';');
+                break;
             case 'pointer':
                 target.x = m.x;
                 target.y = m.y;
@@ -358,8 +397,15 @@
                         cx: (r.left + r.right) / 2, cy: (r.top + r.bottom) / 2,
                         rad: Math.hypot(r.width, r.height) / 2 });
         }
-        const key = list.map(l => `${l.x0 | 0},${l.y0 | 0},${l.x1 | 0},${l.y1 | 0}`).join(';');
-        if (key !== lensKey) { lensKey = key; send({ type: 'lenses', lenses: list }); }
+        // Frosted panels: the gallery when it's open, otherwise the landing card
+        const frost = [];
+        const panel = document.querySelector('.gallery.open .gallery-panel') || document.querySelector('.card');
+        if (panel && (!panel.checkVisibility || panel.checkVisibility({ opacityProperty: true, visibilityProperty: true }))) {
+            const r = panel.getBoundingClientRect();
+            frost.push({ x0: r.left, y0: r.top, x1: r.right, y1: r.bottom, r: parseFloat(getComputedStyle(panel).borderTopLeftRadius) || 0 });
+        }
+        const key = [...list, ...frost].map(l => `${l.x0 | 0},${l.y0 | 0},${l.x1 | 0},${l.y1 | 0}`).join(';');
+        if (key !== lensKey) { lensKey = key; send({ type: 'lenses', lenses: list, frost }); }
     }
     function lensesMoved() {
         lensUntil = performance.now() + 1000;
@@ -371,9 +417,10 @@
             else measuring = false;
         })();
     }
-    for (const type of ['scroll', 'wheel', 'click', 'keydown', 'hashchange', 'animationend'])
+    for (const type of ['scroll', 'wheel', 'click', 'keydown', 'hashchange', 'animationstart', 'animationend'])
         addEventListener(type, lensesMoved, { capture: true, passive: true });
     setInterval(() => { if (!document.hidden) measureLenses(); }, 500);
+    lensesMoved();
 
     addEventListener('resize', () => { send({ type: 'size', ...size() }); lensesMoved(); });
 

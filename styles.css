@@ -1249,23 +1249,24 @@ body {
 
 /* ═══════════════════════════════════════════
    FROSTED GLASS
-   Clear glass with a strong blur: only a light tint, so the trail lines show through as
-   soft colour, while the blur alone keeps text readable.
+   Clear glass with only a light tint. The frost itself is drawn by bg.js: behind the card and
+   the gallery the trail lines are painted soft and faint, which keeps text readable without a
+   CSS backdrop blur (that would have to be recomputed every frame over the moving lines).
    ═══════════════════════════════════════════ */
 .card,
 .gallery-panel {
     background:
         linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 45%, rgba(255, 255, 255, 0.03));
-    -webkit-backdrop-filter: blur(2.5px) saturate(1.3);
-    backdrop-filter: blur(2.5px) saturate(1.3);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
 }
 
 [data-theme="dark"] .card,
 [data-theme="dark"] .gallery-panel {
     background:
         linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0) 45%, rgba(255, 255, 255, 0.015));
-    -webkit-backdrop-filter: blur(2.5px) saturate(1.2);
-    backdrop-filter: blur(2.5px) saturate(1.2);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
 }
 
 /* Tiles sit on the frosted panel: a light tint of their own, no second blur (saves GPU work) */
