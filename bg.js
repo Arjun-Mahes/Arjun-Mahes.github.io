@@ -12,9 +12,6 @@
     const SETTINGS = {
         cell: 10,            // grid spacing in px; smaller = smoother lines, more work
         scale: 0.0028,       // noise zoom: lower = broader hills
-        terrain: 'smooth',   // starting terrain: 'smooth' rolling hills or jagged 'mountains'.
-        jagSteps: 4,         // double-clicks from smooth to fully jagged; one more goes back to smooth
-        morphSpeed: 0.09,    // 0..1 per frame: how quickly a double-click morphs the terrain (~0.5 s)
         step: 0.1,           // elevation between contour lines
         speed: 0.02,         // how fast the terrain morphs
         fps: 60,
@@ -142,37 +139,9 @@
         return [px, py];
     }
 
-    // Terrain height at a point.
-    // 'smooth': two octaves of plain noise (rolling hills).
-    // 'mountains': ridged multifractal noise. Each octave is folded (1 - |n|) so it peaks in sharp
-    // crests, squared to sharpen them, and weighted by the octave above so detail piles up on the
-    // ridges, which is what makes contour lines bunch on steep slopes and turn jagged.
-    // A double-click blends between them: jag goes 0 (smooth) .. 1 (mountains).
-    let jag = SETTINGS.terrain === 'mountains' ? 1 : 0;
-    let jagGoal = jag;
-
-    function smoothHeight(x, y, z) {
-        return noise(x, y, z) + 0.45 * noise(x * 2.1 + 17, y * 2.1 + 5, z * 1.3);
-    }
-
+    // Terrain height at a point: two octaves of plain noise (rolling hills)
     function elevation(x, y, z) {
-        if (jag <= 0.001) return smoothHeight(x, y, z);
-        if (jag >= 0.999) return mountainHeight(x, y, z);
-        return smoothHeight(x, y, z) * (1 - jag) + mountainHeight(x, y, z) * jag;
-    }
-
-    function mountainHeight(x, y, z) {
-        let sum = 0, amp = 0.62, freq = 0.9, weight = 1;
-        for (let o = 0; o < 5; o++) {
-            let ridge = 1 - Math.abs(noise(x * freq + o * 17.3, y * freq + o * 31.7, z * (1 + o * 0.35)) * 1.4);
-            ridge = Math.max(0, ridge);
-            ridge *= ridge * weight;
-            weight = Math.min(1, ridge * 1.8);
-            sum += ridge * amp;
-            freq *= 2.05;
-            amp *= 0.5;
-        }
-        return sum * 2.3 - 1.15;    // map into the contour range
+        return noise(x, y, z) + 0.45 * noise(x * 2.1 + 17, y * 2.1 + 5, z * 1.3);
     }
 
     let lastHill = '', lastColour = '';
@@ -185,15 +154,12 @@
         hill.h += (target.on * hillHeight - hill.h) * 0.16;
         const twoSigma2 = 2 * hillSize * hillSize;
         const glass = lensCache;
-        const morphing = Math.abs(jagGoal - jag) > 0.001;
-        if (morphing) jag += (jagGoal - jag) * SETTINGS.morphSpeed;
-        else jag = jagGoal;
 
         // Terrain heights (cached), seen through any lenses. A full rebuild takes ~10 ms, so the slow
         // drift is refreshed a band of rows per frame instead (the whole map every DRIFT_FRAMES
-        // frames), which keeps every frame cheap. Lens moves and terrain morphs still rebuild at once.
+        // frames), which keeps every frame cheap. Lens moves still rebuild at once.
         const key = glass.map(l => `${l.x0 | 0},${l.y0 | 0},${l.x1 | 0},${l.y1 | 0}`).join(';');
-        const full = morphing || baseTime < 0 || key !== baseKey || time < baseTime;
+        const full = baseTime < 0 || key !== baseKey || time < baseTime;
         // While the cursor is still, this means the canvas only repaints ~20x a second
         const drifting = !full && time !== baseTime && frame++ % DRIFT_EVERY === 0;
 
@@ -330,9 +296,6 @@
                 target.on = 1;
                 break;
             case 'leave': target.on = 0; break;
-            case 'jag':
-                jagGoal = jagGoal >= 0.999 ? 0 : Math.min(1, Math.round(jagGoal * SETTINGS.jagSteps + 1) / SETTINGS.jagSteps);
-                break;
         }
     }
 
@@ -424,18 +387,6 @@
 
     addEventListener('resize', () => { send({ type: 'size', ...size() }); lensesMoved(); });
 
-    // Each double-click (except on links and buttons) makes the terrain one step more jagged;
-    // after the last step the next one eases it back to smooth
-    const interactive = 'a, button, input, select, textarea, label, [contenteditable], .tile';
-    document.addEventListener('dblclick', e => {
-        if (e.target.closest(interactive)) return;
-        send({ type: 'jag' });
-        window.getSelection()?.removeAllRanges();
-    });
-    // Stop double-clicks from highlighting words on the page
-    document.addEventListener('mousedown', e => {
-        if (e.detail > 1 && !e.target.closest(interactive)) e.preventDefault();
-    });
     addEventListener('pointermove', e => send({ type: 'pointer', x: e.clientX, y: e.clientY }), { passive: true });
     root.addEventListener('pointerleave', () => send({ type: 'leave' }));
 })();
