@@ -14,6 +14,12 @@
             try { localStorage.removeItem('theme'); } catch (e) {}   // clear any choice saved by older versions
             document.documentElement.dataset.theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         })();
+        // A photo that fails to load gets one retry (past any cached failure) before it's dropped
+        function retryImg(img) {
+            if (img.dataset.retried) return img.remove();
+            img.dataset.retried = '1';
+            img.src = img.src.split('?')[0] + '?retry=' + Date.now();
+        }
     </script>
 
     <!-- SF Pro on Apple devices; Inter is the closest stand-in elsewhere -->
@@ -41,9 +47,9 @@
     <!-- Landing: one card -->
     <main class="landing">
         <article class="card">
-            <!-- Drop your photo at images/me.jpg -->
+            <!-- Photo: images/me.webp -->
             <div class="card-photo">
-                <img src="images/me.jpg" alt="Portrait of Arjun Mahes" onerror="this.remove()">
+                <img src="images/me.webp" alt="Portrait of Arjun Mahes" fetchpriority="high" onerror="retryImg(this)">
             </div>
 
             <div class="card-body">
@@ -99,8 +105,8 @@
         </article>
     </div>
 
-    <script src="bg.js?v=45"></script>
-    <script src="app.js?v=740"></script>
+    <script src="bg.js?v=46"></script>
+    <script src="app.js?v=741"></script>
 </body>
 
 </html>

@@ -123,11 +123,12 @@
 
         $('masonry').innerHTML = state.projects.map((p, i) => {
             const size = p.size || SIZES[i % SIZES.length];
-            // Just the image; the title appears on hover, everything else is in the deep dive
+            // Just the image; the title appears on hover, everything else is in the deep dive.
+            // Not lazy: the gallery starts hidden, so lazy images would only start loading once it opens.
             return `
                 <button type="button" class="tile${size ? ` tile--${size}` : ''}" data-magnify data-index="${i}"
                         data-stage="${stage(p.status)}" style="--d:${i}" aria-label="${esc(p.title)}">
-                    ${p.image ? `<img src="${esc(p.image)}" alt="" loading="lazy" onerror="this.remove()">` : ''}
+                    ${p.image ? `<img src="${esc(p.image)}" alt="" decoding="async" onerror="retryImg(this)">` : ''}
                     <span class="tile-title" aria-hidden="true">${esc(p.title)}</span>
                 </button>`;
         }).join('');
@@ -168,7 +169,7 @@
         state.current = (i + n) % n;
 
         $('dive-hero').innerHTML = p.image
-            ? `<img src="${esc(p.image)}" alt="${esc(p.title)}" onerror="this.remove()">`
+            ? `<img src="${esc(p.image)}" alt="${esc(p.title)}" onerror="retryImg(this)">`
             : '';
         $('dive-where').textContent = p.where;
         $('dive-title').textContent = p.title;

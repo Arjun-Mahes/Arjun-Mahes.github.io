@@ -2,7 +2,13 @@
 // The cursor is a hill: the terrain rises under it, so the lines ring around it and follow it.
 // Drawn with marching squares over Perlin noise; every fifth line is a darker "index contour".
 // Elements marked data-magnify (the gallery tiles) act as magnifying lenses over the map.
+//
+// The drawing runs in a Web Worker on an OffscreenCanvas (this same file is loaded as the worker),
+// so it never competes with clicks, hovers and scrolling on the page. The page side only measures
+// the tiles and forwards the cursor, size and theme. Browsers without OffscreenCanvas draw on the
+// page instead, with the same code.
 (function () {
+    const inWorker = typeof document === 'undefined';
     const SETTINGS = {
         cell: 10,            // grid spacing in px; smaller = smoother lines, more work
         scale: 0.0028,       // noise zoom: lower = broader hills
@@ -20,9 +26,7 @@
         // Line colours come from the CSS variables --topo-line / --topo-index, so they follow the theme
     };
 
-    const canvas = document.getElementById('bg');
-    const ctx = canvas && canvas.getContext('2d');
-    if (!ctx) return;
+    let canvas = null, ctx = null;
 
     // ─── Perlin noise (Ken Perlin's improved noise, fixed seed so the map is the same every visit) ───
     const perm = new Uint8Array(512);
@@ -82,12 +86,10 @@
     const colours = { line: '', index: '' };
     const colourNow = { line: null, index: null };
     const colourGoal = { line: null, index: null };
-    function readColours() {
-        const css = getComputedStyle(document.documentElement);
-        colourGoal.line = parse(css.getPropertyValue('--topo-line').trim() || 'rgba(168, 72, 37, 0.2)');
-        colourGoal.index = parse(css.getPropertyValue('--topo-index').trim() || 'rgba(168, 72, 37, 0.38)');
-        if (!colourNow.line) { colourNow.line = [...colourGoal.line]; colourNow.index = [...colourGoal.index]; }
-        blendColours(1);
+    function setColours(goal) {
+        colourGoal.line = parse(goal.line || 'rgba(168, 72, 37, 0.2)');
+        colourGoal.index = parse(goal.index || 'rgba(168, 72, 37, 0.38)');
+        if (!colourNow.line) { colourNow.line = [...colourGoal.line]; colourNow.index = [...colourGoal.index]; blendColours(1); }
     }
     function blendColours(amount) {
         for (const k of ['line', 'index']) {
@@ -96,28 +98,21 @@
             colours[k] = `rgba(${r | 0}, ${g | 0}, ${b | 0}, ${a.toFixed(3)})`;
         }
     }
-    readColours();
-    new MutationObserver(() => {
-        const css = getComputedStyle(document.documentElement);
-        colourGoal.line = parse(css.getPropertyValue('--topo-line').trim());
-        colourGoal.index = parse(css.getPropertyValue('--topo-index').trim());
-    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     const low = -1.3;
 
     // The hill eases toward the cursor and sinks away when the cursor leaves the page
     const target = { x: 0, y: 0, on: 0 };
     const hill = { x: 0, y: 0, h: 0 };
 
-    // The terrain drifts slowly, so its heights are cached and rebuilt ~20x a second (or straight
-    // away if the lenses move); only the cursor hill is added fresh every frame.
+    // The terrain drifts slowly, so its heights are cached and refreshed a band at a time (or all
+    // at once if the lenses move); only the cursor hill is added fresh every frame.
     let base = new Float32Array(0), sampleX = new Float32Array(0), sampleY = new Float32Array(0);
     let baseTime = -1, baseKey = '', driftRow = 0;
     const DRIFT_FRAMES = 6;
 
-    function resize() {
-        const dpr = Math.min(devicePixelRatio || 1, 2);
-        width = innerWidth;
-        height = innerHeight;
+    function setSize(w, h, dpr) {
+        width = w;
+        height = h;
         canvas.width = Math.round(width * dpr);
         canvas.height = Math.round(height * dpr);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -130,30 +125,8 @@
         baseTime = -1;
     }
 
-    // Visible magnifying tiles as rectangles. Measuring them forces a layout, so it's only done
-    // for a second after something could have moved them (scroll, click, key, resize, the gallery's
-    // rise animation), plus a slow safety refresh; the rest of the time the last measurement is reused.
-    let lensCache = [], lensUntil = 0, lensAt = -1e9;
-    const lensesMoved = () => { lensUntil = performance.now() + 1000; };
-    for (const type of ['scroll', 'wheel', 'click', 'keydown', 'resize', 'hashchange', 'animationend'])
-        addEventListener(type, lensesMoved, { capture: true, passive: true });
-    function lenses(now) {
-        if (now > lensUntil && now - lensAt < 500) return lensCache;
-        lensAt = now;
-        return (lensCache = measureLenses());
-    }
-    function measureLenses() {
-        const list = [];
-        for (const el of document.querySelectorAll('[data-magnify]')) {
-            if (el.hidden || (el.checkVisibility && !el.checkVisibility({ visibilityProperty: true }))) continue;
-            const r = el.getBoundingClientRect();
-            if (r.width < 20 || r.height < 20 || r.bottom < 0 || r.top > height) continue;
-            list.push({ x0: r.left, y0: r.top, x1: r.right, y1: r.bottom,
-                        cx: (r.left + r.right) / 2, cy: (r.top + r.bottom) / 2,
-                        rad: Math.hypot(r.width, r.height) / 2 });
-        }
-        return list;
-    }
+    // Visible magnifying tiles as rectangles, measured on the page side (see below)
+    let lensCache = [];
 
     // Inside a lens, sample the map closer to the lens centre, so it shows up enlarged.
     // The zoom is strongest in the middle and eases toward the rim, like a convex lens.
@@ -202,7 +175,7 @@
     }
 
     let lastHill = '', lastColour = '';
-    function draw(time, now) {
+    function draw(time) {
         const { cell, scale, step, hillHeight, hillSize, follow } = SETTINGS;
         const z = time * SETTINGS.speed;
 
@@ -210,7 +183,7 @@
         hill.y += (target.y - hill.y) * follow;
         hill.h += (target.on * hillHeight - hill.h) * 0.16;
         const twoSigma2 = 2 * hillSize * hillSize;
-        const glass = lenses(now);
+        const glass = lensCache;
         const morphing = Math.abs(jagGoal - jag) > 0.001;
         if (morphing) jag += (jagGoal - jag) * SETTINGS.morphSpeed;
         else jag = jagGoal;
@@ -292,39 +265,130 @@
         ctx.stroke(major);
     }
 
-    addEventListener('resize', resize);
+    // ─── Inputs: the same messages drive the worker and the on-page fallback ───
+    let still = false, running = false;
+    const raf = self.requestAnimationFrame
+        ? f => self.requestAnimationFrame(f)
+        : f => setTimeout(() => f(performance.now()), 16);
+
+    function handle(m) {
+        switch (m.type) {
+            case 'init':
+                canvas = m.canvas;
+                ctx = canvas.getContext('2d');
+                still = m.still;
+                setColours(m.colours);
+                setSize(m.w, m.h, m.dpr);
+                if (!running) start();
+                break;
+            case 'size': setSize(m.w, m.h, m.dpr); break;
+            case 'colours': setColours(m.colours); break;
+            case 'lenses': lensCache = m.lenses; break;
+            case 'pointer':
+                target.x = m.x;
+                target.y = m.y;
+                if (!target.on) { hill.x = target.x; hill.y = target.y; }   // rise in place, don't slide in from 0,0
+                target.on = 1;
+                break;
+            case 'leave': target.on = 0; break;
+            case 'jag':
+                jagGoal = jagGoal >= 0.999 ? 0 : Math.min(1, Math.round(jagGoal * SETTINGS.jagSteps + 1) / SETTINGS.jagSteps);
+                break;
+        }
+    }
+
+    // "Reduce motion": the terrain holds still, but the cursor hill still follows the mouse
+    function start() {
+        running = true;
+        let last = 0;
+        (function loop(now) {
+            raf(loop);
+            // A couple of ms of slack: frames on a 60 Hz screen arrive every ~16.6 ms, and a strict
+            // check would randomly skip some of them
+            if (now - last < 1000 / SETTINGS.fps - 2) return;
+            last = now;
+            draw(still ? 0 : now / 1000);
+        })(0);
+    }
+
+    if (inWorker) {
+        self.onmessage = e => handle(e.data);
+        return;
+    }
+
+    // ─── Page side ───
+    const el = document.getElementById('bg');
+    if (!el || !el.getContext) return;
+
+    let worker = null;
+    if (el.transferControlToOffscreen && self.Worker) {
+        try { worker = new Worker(document.currentScript.src); } catch { worker = null; }
+    }
+    const send = (m, transfer) => worker ? worker.postMessage(m, transfer || []) : handle(m);
+
+    const root = document.documentElement;
+    const readColours = () => {
+        const css = getComputedStyle(root);
+        return { line: css.getPropertyValue('--topo-line').trim(), index: css.getPropertyValue('--topo-index').trim() };
+    };
+    const size = () => ({ w: innerWidth, h: innerHeight, dpr: Math.min(devicePixelRatio || 1, 2) });
+
+    const init = { type: 'init', colours: readColours(), still: matchMedia('(prefers-reduced-motion: reduce)').matches, ...size() };
+    if (worker) {
+        const offscreen = el.transferControlToOffscreen();
+        send({ ...init, canvas: offscreen }, [offscreen]);
+    } else {
+        send({ ...init, canvas: el });
+    }
+
+    new MutationObserver(() => send({ type: 'colours', colours: readColours() }))
+        .observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+
+    // Measuring the tiles forces a layout, so it's only done every frame for a second after
+    // something could have moved them (scroll, click, key, resize, the gallery's rise animation),
+    // plus a slow safety check; a new list is only sent when it changed.
+    let lensKey = '', lensUntil = 0, measuring = false;
+    function measureLenses() {
+        const list = [];
+        for (const t of document.querySelectorAll('[data-magnify]')) {
+            if (t.hidden || (t.checkVisibility && !t.checkVisibility({ visibilityProperty: true }))) continue;
+            const r = t.getBoundingClientRect();
+            if (r.width < 20 || r.height < 20 || r.bottom < 0 || r.top > innerHeight) continue;
+            list.push({ x0: r.left, y0: r.top, x1: r.right, y1: r.bottom,
+                        cx: (r.left + r.right) / 2, cy: (r.top + r.bottom) / 2,
+                        rad: Math.hypot(r.width, r.height) / 2 });
+        }
+        const key = list.map(l => `${l.x0 | 0},${l.y0 | 0},${l.x1 | 0},${l.y1 | 0}`).join(';');
+        if (key !== lensKey) { lensKey = key; send({ type: 'lenses', lenses: list }); }
+    }
+    function lensesMoved() {
+        lensUntil = performance.now() + 1000;
+        if (measuring) return;
+        measuring = true;
+        (function tick() {
+            measureLenses();
+            if (performance.now() < lensUntil) requestAnimationFrame(tick);
+            else measuring = false;
+        })();
+    }
+    for (const type of ['scroll', 'wheel', 'click', 'keydown', 'hashchange', 'animationend'])
+        addEventListener(type, lensesMoved, { capture: true, passive: true });
+    setInterval(() => { if (!document.hidden) measureLenses(); }, 500);
+
+    addEventListener('resize', () => { send({ type: 'size', ...size() }); lensesMoved(); });
 
     // Each double-click (except on links and buttons) makes the terrain one step more jagged;
     // after the last step the next one eases it back to smooth
     const interactive = 'a, button, input, select, textarea, label, [contenteditable], .tile';
     document.addEventListener('dblclick', e => {
         if (e.target.closest(interactive)) return;
-        jagGoal = jagGoal >= 0.999 ? 0 : Math.min(1, Math.round(jagGoal * SETTINGS.jagSteps + 1) / SETTINGS.jagSteps);
+        send({ type: 'jag' });
         window.getSelection()?.removeAllRanges();
     });
     // Stop double-clicks from highlighting words on the page
     document.addEventListener('mousedown', e => {
         if (e.detail > 1 && !e.target.closest(interactive)) e.preventDefault();
     });
-    addEventListener('pointermove', e => {
-        target.x = e.clientX;
-        target.y = e.clientY;
-        if (!target.on) { hill.x = target.x; hill.y = target.y; }   // rise in place, don't slide in from 0,0
-        target.on = 1;
-    }, { passive: true });
-    document.documentElement.addEventListener('pointerleave', () => { target.on = 0; });
-
-    resize();
-
-    // "Reduce motion": the terrain holds still, but the cursor hill still follows the mouse
-    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let last = 0;
-    (function loop(now) {
-        requestAnimationFrame(loop);
-        // A couple of ms of slack: frames on a 60 Hz screen arrive every ~16.6 ms, and a strict
-        // check would randomly skip some of them
-        if (now - last < 1000 / SETTINGS.fps - 2) return;
-        last = now;
-        draw(still ? 0 : now / 1000, now);
-    })(0);
+    addEventListener('pointermove', e => send({ type: 'pointer', x: e.clientX, y: e.clientY }), { passive: true });
+    root.addEventListener('pointerleave', () => send({ type: 'leave' }));
 })();

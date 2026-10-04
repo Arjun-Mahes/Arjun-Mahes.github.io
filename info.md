@@ -49,7 +49,7 @@ Summary: Building a microscope at home that can see individual atoms, from the v
 - Next up is the C++ PI feedback loop that keeps the tip at the right height while it scans.
 
 ### EV Charger Test Systems
-![](images/projects/ev-charger-tester.jpg)
+![](images/projects/ev-charger-tester.webp)
 Where: Soneil Spark · 2026
 Status: shipped
 Tags: hardware, firmware, software
@@ -70,7 +70,7 @@ Summary: A robotic extra thumb you wear on your hand, controlled with your forea
 - I wanted two ways to control it, so I made two wireless boards: an EMG amplifier on an ESP32 that reads your forearm muscles, and a shoe with two pressure sensors on an nRF52810 that turns toe pressure into thumb movement.
 
 ### EMG Amplifier PCB
-![](images/projects/emg-amplifier.png)
+![](images/projects/emg-amplifier.webp)
 Where: Personal
 Status: complete
 Tags: hardware, firmware
@@ -82,7 +82,7 @@ Summary: My own board for reading muscle signals and sending them wirelessly, bu
 - The analog side runs off two 9 V batteries.
 
 ### Hacker Fab
-![](images/projects/hackerfab.png)
+![](images/projects/hackerfab.webp)
 Where: Waterloo Hacker Fab · 2025
 Status: prototype
 Tags: hardware, firmware
@@ -90,13 +90,13 @@ Tools: KiCad, ESP32, Stepper motor
 Size: normal
 Summary: Hardware I've built for Waterloo Hacker Fab, a student fab where we make our own semiconductor tools from scratch.
 **Argon mass flow controller**
-![Argon mass flow controller PCB](images/projects/hackerfab-mfc-pcb.png)
+![Argon mass flow controller PCB](images/projects/hackerfab-mfc-pcb.webp)
 - I designed this board in KiCad to control how much argon flows into our PVD sputtering system.
 - The ESP32 reads a pressure sensor and a knob that sets the flow you want, then tells a stepper motor how far to turn the gas valve.
 - There's a small LCD so you can see what it's doing, and a diode on the power input so plugging it in backwards doesn't fry anything.
 
 ### Triboelectric Nanogenerators
-![](images/projects/teng.jpg)
+![](images/projects/teng.webp)
 Where: Personal
 Status: complete
 Tags: hardware
@@ -108,10 +108,10 @@ Summary: A little generator that turns moving air into electricity using static,
 - Because the charge flips back and forth with every turn, it pushes current back and forth through an external circuit as AC.
 - We designed the whole thing in SolidWorks (the rotor, the contact surfaces and the housing the air blows through) and built it mostly out of cheap household materials.
 - It held 30–50 V for over two minutes and got up to 52 V, from something you can hold in one hand.
-![SolidWorks design of the generator rotor](images/projects/teng-cad.jpg)
+![SolidWorks design of the generator rotor](images/projects/teng-cad.webp)
 
 ### Neural Style Transfer
-![](images/projects/style-transfer.png)
+![](images/projects/style-transfer.webp)
 Where: Personal
 Status: complete
 Tags: software
@@ -124,7 +124,7 @@ Link: [View the code](https://github.com/Arjun-Mahes/Neural-Style-Transfer)
 - I also wrapped it in a Streamlit app, so you can upload your own two images, watch it work and download the result. The code is on GitHub.
 
 ### Ion Trap Simulation
-![](images/projects/ion-trap.jpg)
+![](images/projects/ion-trap.webp)
 Where: HardHaQ Hackathon
 Status: 1st place
 Tags: software
