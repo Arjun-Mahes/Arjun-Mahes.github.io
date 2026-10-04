@@ -1,7 +1,8 @@
 // The game behind the 👋: a rocket in an asteroid field on the flooded screen.
 // Steer with the mouse / a finger / ←→ (or A D). Hold the mouse button, a finger or Space to shoot;
 // the first press launches. Asteroids (big ones split), comets, satellites and UFOs come at you;
-// fly into ★ for triple shot or ⬡ for a shield that takes one hit. Photo orbs (info.md, "## Orbs")
+// fly into power-ups: ★ triple shot, ⬡ shield (takes one hit), 💣 bomb (a shockwave that clears the
+// screen), ⚡ rapid fire, ⏳ slow-mo and ➶ piercing shots. Photo orbs (info.md, "## Orbs")
 // join the field once there are pictures for them. More and more things come down as the run goes on.
 // One canvas, drawn only while the Random screen is open (app.js calls rocketGame.open / close).
 (function () {
@@ -14,8 +15,8 @@
         speed: 320, speedGain: 10, maxSpeed: 950,      // px/s the world falls at, and how it ramps up
         startCount: 3, countGain: 0.15, maxCount: 26,  // things on screen: 3 at launch, +1 every ~7 s, up to 26
         steer: 12, keySpeed: 760,                      // how fast the rocket follows the pointer / keys
-        fireEvery: 0.11, bulletSpeed: 1000,            // shooting
-        powerTime: 7,                                  // s of triple shot
+        fireEvery: 0.11, rapidEvery: 0.05, bulletSpeed: 1000,   // shooting
+        maxPickups: 2, pickupGap: 4,                   // power-ups on screen at once, and s between them
     };
 
     // What can come down, when it starts appearing (s into the run) and how often (weight)
@@ -25,10 +26,23 @@
         { kind: 'satellite', from: 4, weight: 9 },
         { kind: 'ufo', from: 12, weight: 6 },
         { kind: 'triple', from: 5, weight: 3, pickup: true },
+        { kind: 'rapid', from: 6, weight: 3, pickup: true },
         { kind: 'shield', from: 8, weight: 2, pickup: true },
+        { kind: 'pierce', from: 9, weight: 2, pickup: true },
+        { kind: 'bomb', from: 10, weight: 2, pickup: true },
+        { kind: 'slow', from: 14, weight: 2, pickup: true },
         { kind: 'orb', from: 0, weight: 30, needs: () => orbArt.length > 0 },
     ];
     const POINTS = { rock: 10, comet: 25, satellite: 50, ufo: 100, orb: 30 };
+
+    // Timed power-ups: how long each lasts (s), what it says when you grab it, and its HUD label
+    const POWERS = {
+        triple: { time: 7, says: 'triple shot!', hud: '★ triple' },
+        rapid: { time: 7, says: 'rapid fire!', hud: '⚡ rapid' },
+        pierce: { time: 7, says: 'piercing shots!', hud: '➶ pierce' },
+        slow: { time: 5, says: 'slow-mo!', hud: '⏳ slow-mo' },
+    };
+    const SLOW = 0.4;   // how fast the world moves during slow-mo
 
     // Photo orbs: each picture is cut into a circle once, when it loads, so drawing one is a single
     // drawImage per frame
@@ -61,7 +75,8 @@
     let state = 'off';            // off | ready | flying | crashed
     let raf = 0, last = 0, t = 0, runTime = 0;
     let rocket, things, bullets, stars, sparks, popups, score, best, speed, spawnIn, fireIn;
-    let keys = 0, firing = false, triple = 0, shield = false, invulnerable = 0;
+    let keys = 0, firing = false, shield = false, invulnerable = 0;
+    let powers = {}, shock = null, flashFx = 0, worldT = 0, nextPickup = 0;
 
     try { best = Number(localStorage.getItem('rocket-best')) || 0; } catch { best = 0; }
 
@@ -88,8 +103,11 @@
         speed = TUNING.speed;
         spawnIn = 0.6;
         fireIn = 0;
-        triple = 0;
+        powers = { triple: 0, rapid: 0, pierce: 0, slow: 0 };
         shield = false;
+        shock = null;
+        flashFx = 0;
+        nextPickup = 0;
         invulnerable = 0;
         if (!stars) stars = Array.from({ length: 90 }, () => ({ x: Math.random() * W, y: Math.random() * H, z: 0.15 + Math.random() * 0.85 }));
     }
@@ -109,7 +127,10 @@
     }
 
     function spawn() {
-        const open = KINDS.filter(k => runTime >= k.from && (!k.needs || k.needs()) && !(k.pickup && things.some(o => o.pickup)));
+        const pickups = things.filter(o => o.pickup);
+        const open = KINDS.filter(k => runTime >= k.from && (!k.needs || k.needs()) &&
+                                       !(k.pickup && (pickups.length >= TUNING.maxPickups || runTime < nextPickup ||
+                                                      pickups.some(o => o.kind === k.kind))));
         let roll = Math.random() * open.reduce((s, k) => s + k.weight, 0);
         const pick = open.find(k => (roll -= k.weight) < 0) || open[0];
         const x = rand(40, W - 40), y = -50;
@@ -121,7 +142,9 @@
             case 'ufo': return things.push({ kind: 'ufo', x, y, cx: x, r: 22, hp: 4, fall: 0.32, phase: rand(0, 6.3), amp: rand(80, 200), vx: 0, rot: 0, spin: 0, flash: 0 });
             case 'orb': return things.push({ kind: 'orb', x, y, r: rand(22, 30), hp: 2, art: orbArt[Math.random() * orbArt.length | 0],
                                              vx: rand(-30, 30), fall: rand(0.65, 0.95), rot: rand(-0.3, 0.3), spin: rand(-0.5, 0.5), flash: 0 });
-            default: return things.push({ kind: pick.kind, pickup: true, x, y, r: 16, fall: 0.45, vx: 0, rot: 0, spin: 1.2, flash: 0 });
+            default:
+                nextPickup = runTime + TUNING.pickupGap;
+                return things.push({ kind: pick.kind, pickup: true, x, y, r: 16, fall: 0.45, vx: 0, rot: 0, spin: 1.2, flash: 0 });
         }
     }
 
@@ -170,10 +193,11 @@
     }
 
     function fire() {
-        const angles = triple > 0 ? [-0.16, 0, 0.16] : [0];
+        const angles = powers.triple > 0 ? [-0.16, 0, 0.16] : [0];
         for (const a of angles) {
             bullets.push({ x: rocket.x + Math.sin(rocket.tilt) * 26, y: rocket.y - 30,
-                           vx: Math.sin(a + rocket.tilt * 0.4) * TUNING.bulletSpeed, vy: -Math.cos(a) * TUNING.bulletSpeed });
+                           vx: Math.sin(a + rocket.tilt * 0.4) * TUNING.bulletSpeed, vy: -Math.cos(a) * TUNING.bulletSpeed,
+                           pierce: powers.pierce > 0, hits: null });
         }
     }
 
@@ -183,12 +207,15 @@
         const flying = state === 'flying';
         // The world keeps drifting even before launch, slowly, so the screen feels alive
         const v = flying ? speed : 60;
+        // Slow-mo slows the world, not the rocket or its bullets
+        const wdt = flying && powers.slow > 0 ? dt * SLOW : dt;
+        worldT += wdt;
 
         if (flying) {
             runTime += dt;
-            score += dt * speed / 25;
+            score += wdt * speed / 25;
             speed = Math.min(TUNING.maxSpeed, speed + TUNING.speedGain * dt);
-            spawnIn -= dt;
+            spawnIn -= wdt;
             if (spawnIn <= 0) {
                 spawn();
                 // Aim for a number of things on screen that climbs steadily, so the field keeps getting
@@ -197,14 +224,20 @@
                 const count = Math.min(TUNING.maxCount, TUNING.startCount + runTime * TUNING.countGain);
                 spawnIn = rand(0.5, 1.5) / (count * speed / (H + 100));
             }
-            triple = Math.max(0, triple - dt);
+            for (const k in powers) powers[k] = Math.max(0, powers[k] - dt);
             invulnerable = Math.max(0, invulnerable - dt);
             fireIn -= dt;
-            if (firing && fireIn <= 0) { fire(); fireIn = TUNING.fireEvery; }
+            if (firing && fireIn <= 0) { fire(); fireIn = powers.rapid > 0 ? TUNING.rapidEvery : TUNING.fireEvery; }
+        }
+
+        flashFx = Math.max(0, flashFx - dt);
+        if (shock) {
+            shock.r += 1500 * dt;
+            if (shock.r > shock.max) shock = null;
         }
 
         for (const s of stars) {
-            s.y += v * s.z * 0.6 * dt;
+            s.y += v * s.z * 0.6 * wdt;
             if (s.y > H) { s.y -= H + 10; s.x = Math.random() * W; }
         }
 
@@ -224,15 +257,18 @@
 
         for (let i = things.length - 1; i >= 0; i--) {
             const o = things[i];
-            o.y += (speed * o.fall + (o.vy || 0)) * dt;
-            if (o.vy) o.vy *= 1 - 2 * dt;
-            if (o.kind === 'ufo') o.x = o.cx + Math.sin(t * 2.2 + o.phase) * o.amp;
-            else o.x += o.vx * dt;
+            o.y += (speed * o.fall + (o.vy || 0)) * wdt;
+            if (o.vy) o.vy *= 1 - 2 * wdt;
+            if (o.kind === 'ufo') o.x = o.cx + Math.sin(worldT * 2.2 + o.phase) * o.amp;
+            else o.x += o.vx * wdt;
             if (o.kind === 'satellite' && (o.x < o.r || o.x > W - o.r)) o.vx = -o.vx;
-            o.rot += o.spin * dt;
+            o.rot += o.spin * wdt;
             o.flash = Math.max(0, o.flash - dt);
             if (o.y - o.r > H + 40) { things.splice(i, 1); continue; }
             if (!flying) continue;
+
+            // Caught in a bomb's shockwave
+            if (shock && !o.pickup && Math.hypot(o.x - shock.x, o.y - shock.y) < shock.r + o.r) { destroy(o, i); continue; }
 
             // Shot? (pickups can't be shot)
             if (!o.pickup) {
@@ -241,7 +277,11 @@
                     const b = bullets[j];
                     if (Math.abs(b.x - o.x) > o.r + 4 || Math.abs(b.y - o.y) > o.r + 12) continue;
                     if (Math.hypot(b.x - o.x, b.y - o.y) > o.r + 4) continue;
-                    bullets.splice(j, 1);
+                    if (b.pierce) {
+                        // Piercing shots carry on through, hitting each thing once
+                        if (b.hits?.has(o)) continue;
+                        (b.hits ||= new Set()).add(o);
+                    } else bullets.splice(j, 1);
                     o.flash = 0.08;
                     burst(b.x, b.y, 3, 0.5);
                     if (--o.hp <= 0) { destroy(o, i); destroyed = true; break; }
@@ -254,9 +294,14 @@
                 if (Math.hypot(o.x - (rocket.x + ox), o.y - (rocket.y + oy)) >= o.r * 0.82 + rr) continue;
                 if (o.pickup) {
                     things.splice(i, 1);
-                    if (o.kind === 'triple') triple = TUNING.powerTime;
-                    else shield = true;
-                    popups.push({ x: o.x, y: o.y, text: o.kind === 'triple' ? 'triple shot!' : 'shield!', life: 1 });
+                    let says;
+                    if (o.kind === 'shield') { shield = true; says = 'shield!'; }
+                    else if (o.kind === 'bomb') {
+                        shock = { x: rocket.x, y: rocket.y, r: 0, max: Math.hypot(W, H) };
+                        flashFx = 0.25;
+                        says = 'BOOM!';
+                    } else { powers[o.kind] = POWERS[o.kind].time; says = POWERS[o.kind].says; }
+                    popups.push({ x: o.x, y: o.y, text: says, life: 1 });
                     burst(o.x, o.y, 10, 0.6);
                 } else if (invulnerable > 0) {
                     destroy(o, i);
@@ -317,12 +362,25 @@
             ctx.restore();
         }
 
-        ctx.lineWidth = 3;
         for (const b of bullets) {
+            // Piercing shots are longer and heavier
+            const k = b.pierce ? 0.03 : 0.012;
+            ctx.lineWidth = b.pierce ? 4.5 : 3;
             ctx.beginPath();
             ctx.moveTo(b.x, b.y);
-            ctx.lineTo(b.x - b.vx * 0.012, b.y - b.vy * 0.012);
+            ctx.lineTo(b.x - b.vx * k, b.y - b.vy * k);
             ctx.stroke();
+        }
+
+        // Bomb: a thick ring racing outward, thinning as it goes, and a quick flash
+        if (shock) {
+            const left = 1 - shock.r / shock.max;
+            ctx.globalAlpha = 0.25 + 0.6 * left;
+            ctx.lineWidth = 3 + 14 * left;
+            ctx.beginPath();
+            ctx.arc(shock.x, shock.y, shock.r, 0, 6.3);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
         }
 
         if (state !== 'crashed' && !(invulnerable > 0 && Math.floor(t * 12) % 2)) drawRocket();
@@ -340,10 +398,17 @@
         }
         ctx.globalAlpha = 1;
 
+        if (flashFx > 0) {
+            ctx.globalAlpha = flashFx * 1.6;
+            ctx.fillRect(0, 0, W, H);
+            ctx.globalAlpha = 1;
+        }
+
         if (state === 'flying' || state === 'crashed') {
             ctx.font = `700 15px ${mono}`;
             ctx.fillText(String(Math.floor(score)).padStart(5, '0'), W / 2, 34);
-            const status = [triple > 0 && `★ triple ${Math.ceil(triple)}s`, shield && '⬡ shield'].filter(Boolean).join('   ');
+            const status = [...Object.keys(POWERS).filter(k => powers[k] > 0).map(k => `${POWERS[k].hud} ${Math.ceil(powers[k])}s`),
+                            shield && '⬡ shield'].filter(Boolean).join('   ');
             if (status) {
                 ctx.font = `500 12px ${mono}`;
                 ctx.fillText(status, W / 2, 54);
@@ -454,6 +519,61 @@
             ctx.stroke();
         },
     };
+
+    Object.assign(DRAW, {
+        bomb(o) {
+            // Round bomb, a fuse and a flickering spark
+            ring(o);
+            ctx.beginPath();
+            ctx.arc(-1, 2, 7.5, 0, 6.3);
+            ctx.fill();
+            ctx.fillRect(1, -7, 5, 4);
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(5, -6);
+            ctx.quadraticCurveTo(8, -11, 6, -13);
+            ctx.stroke();
+            if (Math.floor(t * 14) % 2) {
+                ctx.beginPath();
+                ctx.arc(6, -13, 2, 0, 6.3);
+                ctx.fill();
+            }
+        },
+        rapid(o) {
+            // Lightning bolt
+            ring(o);
+            ctx.beginPath();
+            ctx.moveTo(2, -10); ctx.lineTo(-6, 1); ctx.lineTo(-0.5, 1);
+            ctx.lineTo(-2, 10); ctx.lineTo(6, -1.5); ctx.lineTo(0.5, -1.5);
+            ctx.closePath();
+            ctx.fill();
+        },
+        slow(o) {
+            // Hourglass
+            ring(o);
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-6, -9); ctx.lineTo(6, -9); ctx.lineTo(-6, 9); ctx.lineTo(6, 9); ctx.closePath();
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(-3.5, 7); ctx.lineTo(3.5, 7); ctx.lineTo(0, 2.5); ctx.closePath();
+            ctx.fill();
+        },
+        pierce(o) {
+            // A long arrow straight through a dot
+            ring(o);
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(0, 10); ctx.lineTo(0, -8);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, -11); ctx.lineTo(-5, -4); ctx.lineTo(5, -4); ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(0, 3, 3.5, 0, 6.3);
+            ctx.stroke();
+        },
+    });
 
     function ring(o) {
         ctx.lineWidth = 2;
