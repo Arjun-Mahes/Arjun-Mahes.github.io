@@ -137,19 +137,18 @@ Link: [View the study](https://www.tqetchs.xyz/)
 
 ## Random
 <!-- Fun facts for the Random screen behind the 👋 (click it four times). One "- " line each; they come up shuffled. -->
-- Octopuses have three hearts and blue blood.
-- A day on Venus (243 Earth days) is longer than its year (225 Earth days).
-- Botanically, bananas are berries and strawberries aren't.
-- Wombats poop cubes.
-- The first computer "bug" was a real moth, taped into the Harvard Mark II's logbook in 1947.
-- Sharks have been around longer than trees.
-- A teaspoon of neutron star would weigh about a billion tonnes.
-- At its triple point, water can boil and freeze at the same time.
-- There are more possible games of chess than atoms in the observable universe.
-- A lightning bolt is about five times hotter than the surface of the Sun.
-- Sunlight takes about 8 minutes and 20 seconds to reach Earth.
-- The Moon drifts about 3.8 cm farther from Earth every year.
-- The Eiffel Tower grows up to about 15 cm taller in summer as the iron expands.
-- The word "robot" comes from the Czech *robota*, meaning forced labour.
-- Sea otters hold hands while they sleep so they don't drift apart.
-- Your phone has millions of times more memory than the computer that guided Apollo 11 to the Moon.
+- 🔬 I'm building a microscope at home that can see individual atoms. It's so sensitive that someone walking in the next room shows up as noise.
+- 📏 My microscope's scan head moves its tip less than an angstrom at a time, which is smaller than an atom.
+- 🦶 The robotic third thumb I designed can be controlled with your toes: pressure sensors in a shoe drive it wirelessly.
+- 💪 The thumb's other controller reads your forearm muscles through an EMG amplifier board I designed.
+- ⚡ At Soneil Spark I got EV charger testing down to about two minutes per charger.
+- ⚛️ My team won 1st place at the HardHaQ hackathon with an ion trap that needed about 32,700× less RF power than the classic design.
+- 🐶 I once repainted a golden retriever puppy as a Japanese woodblock print, using neural style transfer.
+- 🌬️ I helped build a generator that makes electricity from moving air using static. It hit 52 V, and it fits in one hand.
+- 🦾 The exoskeleton I'm building reads your muscles and helps less as you get stronger.
+- 🧠 I'm training a model to tell when someone *imagines* moving their arm from their brainwaves, so the exoskeleton can help.
+- 🧪 At Hacker Fab I built the controller that meters argon gas into a sputtering machine that makes thin metal films.
+- 🔭 The scanning tunneling microscope was invented at IBM Zurich in 1981 and won its inventors the 1986 Nobel Prize in Physics.
+- 🧦 The shock you get after walking on carpet is the triboelectric effect, the same thing my air-powered generator runs on.
+- 🪲 The first computer "bug" was a real moth, taped into the Harvard Mark II's logbook in 1947.
+- 🤖 The word "robot" comes from the Czech *robota*, meaning forced labour.

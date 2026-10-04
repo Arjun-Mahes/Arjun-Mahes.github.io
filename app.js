@@ -334,7 +334,7 @@
 
     // Fun facts from info.md's "## Random" list, dealt from a shuffled deck so none repeats
     // until they've all been shown
-    let deck = [];
+    let deck = [], factTimer = 0;
     function nextFact(animate = true) {
         const el = $('random-fact');
         if (!state.facts.length) { el.textContent = ''; return; }
@@ -348,15 +348,23 @@
         }
         const fact = deck.pop();
         el.dataset.fact = fact;
-        const show = () => { el.innerHTML = inline(fact); };
+        // A leading emoji sits above the fact, larger
+        const m = fact.match(/^(\p{Extended_Pictographic}\S*)\s+(.*)$/u);
+        const show = () => {
+            el.innerHTML = m ? `<span class="random-emoji" aria-hidden="true">${m[1]}</span>${inline(m[2])}` : inline(fact);
+        };
         if (!animate || matchMedia('(prefers-reduced-motion: reduce)').matches) return show();
-        // Out (up and fade), swap, in (from below): transforms and opacity only
+        // Out (up and fade), swap, in (from below): transforms and opacity only. The swap runs on a
+        // timer rather than the animation's end, so the text always changes even if animations are paused.
         el.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(-10px)' }],
-                   { duration: 140, easing: 'ease-in' }).onfinish = () => {
+                   { duration: 140, easing: 'ease-in', fill: 'forwards' });
+        clearTimeout(factTimer);
+        factTimer = setTimeout(() => {
             show();
+            el.getAnimations().forEach(a => a.cancel());
             el.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }],
                        { duration: 260, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' });
-        };
+        }, 140);
     }
 
     function leaveRandom() {

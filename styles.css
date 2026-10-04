@@ -1524,14 +1524,14 @@ html.random-on .random {
 
 .random-title {
     margin: 0;
-    font: 800 clamp(4rem, 15vw, 10rem)/0.9 var(--font-display);
-    letter-spacing: -0.05em;
+    font: 400 clamp(4rem, 15vw, 10rem)/0.9 "Righteous", var(--font-display);   /* same face as the name */
+    letter-spacing: -0.02em;
     opacity: 0;
 }
 
 .random-fact {
-    max-width: 34ch;
-    min-height: 3.2em;   /* room for two lines, so the buttons don't jump between facts */
+    max-width: 36ch;
+    min-height: 7.4em;   /* room for the emoji and three lines, so the buttons don't jump between facts */
     margin: 0;
     text-align: center;
     font: 500 clamp(1.1rem, 2.4vw, 1.4rem)/1.45 var(--font);
@@ -1573,6 +1573,13 @@ html.random-on .random {
 
 .random-btn:active {
     transform: scale(0.97);
+}
+
+.random-emoji {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 2.2em;
+    line-height: 1;
 }
 
 /* Visible without the animations too (reduced motion turns them off) */
