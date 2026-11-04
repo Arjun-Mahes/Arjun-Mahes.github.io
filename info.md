@@ -5,6 +5,7 @@ Mechatronics engineering @UWaterloo.
 - [GitHub](https://github.com/Arjun-Mahes)
 - [LinkedIn](https://www.linkedin.com/in/arjun-mahes/)
 - [Email](mailto:a2mahes@uwaterloo.ca)
+- [Resume](Arjun-Mahes-Resume.pdf)
 
 ## Home
 - 🤖 robots & semiconductors
@@ -25,7 +26,7 @@ Mechatronics engineering @UWaterloo.
 -->
 ## Projects
 ### Stroke Rehab Exoskeleton
-<!-- ![](images/projects/exoskeleton.jpg)   add this photo, then remove the comment markers -->
+![](images/projects/exoskeleton.webp)
 Where: Personal
 Status: in progress
 Tags: hardware, firmware, software

@@ -92,6 +92,8 @@
                 ? '<path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>'
                 : l.includes('mail')
                     ? '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>'
+                    : l.includes('resume') || l.includes('cv')
+                        ? '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/>'
                     : '<path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/>';
         return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
     }
@@ -113,7 +115,7 @@
             return m ? `<li><span class="emoji" aria-hidden="true">${m[1]}</span>${inline(m[2])}</li>` : `<li>${inline(item)}</li>`;
         }).join('');
         $('links').innerHTML = state.socials.map(s => {
-            const external = /^https?:/.test(s.url) ? ' target="_blank" rel="noopener noreferrer"' : '';
+            const external = /^https?:|\.pdf$/i.test(s.url) ? ' target="_blank" rel="noopener noreferrer"' : '';
             return `<a class="link-pill" href="${esc(s.url)}"${external}>${socialIcon(s.label)}<span>${esc(s.label)}</span></a>`;
         }).join('');
     }
