@@ -78,7 +78,13 @@ Tags: hardware, firmware
 Tools: KiCad, ESP32-S3, Analog design
 Size: wide
 Summary: My own board for reading muscle signals and sending them wirelessly, built as the input for my prosthetic and exoskeleton.
-- I rebuilt the Advancer Technologies EMG circuit in KiCad: an instrumentation amp, a couple of gain stages, filters, and a rectifier that turns the raw signal into a smooth "how hard is this muscle working" envelope.
+- I rebuilt the Advancer Technologies EMG circuit in KiCad. It turns the tiny raw muscle signal (a few millivolts) into a smooth "how hard is this muscle working" voltage:
+  1. **Difference amplifier (INA106, ~110x).** Amplifies the voltage difference between the two electrodes on the muscle and rejects the noise both pick up equally.
+  2. **Gain stage (~15x).** Brings the total gain to about 1,650x.
+  3. **High-pass filter (~106 Hz).** Cuts motion artifacts and slow drift so only the muscle activity gets through.
+  4. **Full-wave rectifier.** Flips the negative half of the signal positive, so it's all one polarity.
+  5. **Low-pass filter (~2 Hz).** Smooths the rectified signal into an envelope that follows how hard the muscle is contracting.
+  6. **Adjustable output gain (0-100x).** A 100k potentiometer sets the final amplitude, so I can tune it per person and per muscle before it goes to the ESP32's ADC.
 - Then I added an ESP32-S3 that samples that envelope and sends it wirelessly to whatever needs it, with USB-C for programming.
 - The analog side runs off two 9 V batteries.
 
@@ -130,17 +136,11 @@ Where: HardHaQ Hackathon
 Status: 1st place
 Tags: software
 Tools: COMSOL, Python, SciPy
-Summary: At HardHaQ, my team designed better traps for holding the atoms in a quantum computer, and won 1st place.
+Summary: At HardHaQ, my team of four designed a better trap for holding the atoms in a quantum computer, and won 1st place.
 Link: [View the study](https://www.tqetchs.xyz/)
-- Trapped-ion quantum computers hold charged atoms in place with electric fields, and the shape of the trap decides how well it holds them. We simulated two kinds in COMSOL: a classic rod (Paul) trap and a flat surface trap.
-- I built a Python pipeline that drove COMSOL through parameter sweeps, using optimizers to tune the geometry and voltages for a deeper, more symmetric trap that uses less RF power.
-- Our surface trap ended up with twice the trap depth of the rod design, using about 32,700x less RF power.
-
-
-## Orbs
-<!--
-  Photo orbs for the rocket game behind the 👋. Put pictures in images/orbs/ and list them here,
-  one per line, without these comment markers. The middle of each picture is cropped to a circle,
-  so roughly square photos work best (small ones are fine: they're drawn about 50 px wide).
-  ![](images/orbs/example.webp)
--->
+- Trapped-ion quantum computers hold charged atoms in place with electric fields, and the trap's shape decides how well it holds them. It was all simulation, in COMSOL.
+- We started with a classic Paul trap: four 40 mm RF rods with DC endcaps. Long rods mean a lot of capacitance, so it needed a lot of RF power.
+- I built a Python pipeline that ran COMSOL like a robot: set the design values, run the simulation, score it on depth, centering and power, and try again. Sweeps first found which knobs mattered (about 60 runs instead of millions), then Nelder-Mead tuned them all together and SLSQP polished the result.
+- The best rod trap reached 11.6 eV deep, but it still drew about 72 mW and the trap's center sat 10 mm off where it should be. That offset swamped the score, so the optimizer barely noticed depth changes. Tuning couldn't fix the geometry itself.
+- So I looked at how industry scales trapped ions and found surface traps, with the electrodes flat on a chip. Small electrodes mean low capacitance and far less RF current.
+- We built and optimized a surface trap: 24.4 eV deep, 0.42 mm off center, and about 2.2 µW, roughly 30,000x less power. (That power is a simplified estimate for comparing designs, not a measurement.)

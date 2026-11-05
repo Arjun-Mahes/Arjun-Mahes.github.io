@@ -564,9 +564,19 @@ code {
     color: var(--ink-2);
 }
 
-.dive-details ul {
+.dive-details ul,
+.dive-details ol {
     margin: 0;
     padding-left: 18px;
+}
+
+/* A numbered list right under a bullet reads as that bullet's steps */
+.dive-details ul + ol {
+    padding-left: 40px;
+}
+
+.dive-details ol li {
+    padding: 3px 0 3px 4px;
 }
 
 .dive-details li {

@@ -25,18 +25,24 @@
 
     function markdown(src) {
         const html = [];
-        let para = [], list = [];
+        let para = [], list = [], tag = 'ul';
         const flush = () => {
             if (para.length) html.push(`<p>${inline(para.join(' '))}</p>`);
-            if (list.length) html.push(`<ul>${list.map(li => `<li>${inline(li)}</li>`).join('')}</ul>`);
+            if (list.length) html.push(`<${tag}>${list.map(li => `<li>${inline(li)}</li>`).join('')}</${tag}>`);
             para = []; list = [];
         };
         for (const line of src.split('\n').map(l => l.trim())) {
             const item = line.match(/^[-*]\s+(.*)/);
+            const num = line.match(/^\d+\.\s+(.*)/);   // "1. " lines make a numbered list
             const img = line.match(/^!\[([^\]]*)\]\(([^)\s]+)\)$/);
             if (!line) flush();
             else if (img) { flush(); html.push(`<img class="detail-img" src="${esc(img[2])}" alt="${esc(img[1])}" loading="lazy">`); }
-            else if (item) { if (para.length) flush(); list.push(item[1]); }
+            else if (item || num) {
+                const t = num ? 'ol' : 'ul';
+                if (para.length || (list.length && t !== tag)) flush();
+                tag = t;
+                list.push((item || num)[1]);
+            }
             else { if (list.length) flush(); para.push(line); }
         }
         flush();
