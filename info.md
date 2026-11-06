@@ -61,14 +61,22 @@ Summary: Test rigs I built at Soneil that put every EV charger through its safet
 - I wrote the firmware in C++ on an ESP32 and built dashboards on a Raspberry Pi, so an operator just hits start and the results get logged. Each charger now takes about two minutes.
 
 ### Third Thumb Prosthetic
-<!-- ![](images/projects/third-thumb.jpg)   add this photo, then remove the comment markers -->
+![](images/projects/third-thumb-collage.webp)
 Where: Personal
 Status: prototype
 Tags: hardware, firmware
 Tools: SolidWorks, Altium, nRF52810
+Size: wide
 Summary: A robotic extra thumb you wear on your hand, controlled with your forearm muscles or by pressing your toes.
 - I designed the thumb in SolidWorks with two servos, so it can bend and grip.
-- I wanted two ways to control it, so I made two wireless boards: an EMG amplifier on an ESP32 that reads your forearm muscles, and a shoe with two pressure sensors on an nRF52810 that turns toe pressure into thumb movement.
+- Above: the printed thumb on the left, and the wrist mount on the right. The two servos sit in that mount and pull the thumb with tendons.
+- I wanted two ways to control it, so I made two wireless boards: an EMG amplifier on an ESP32 that reads your forearm muscles, and a toe sensor that turns toe pressure into thumb movement.
+
+**Toe sensor**
+![Toe sensor PCB layout](images/projects/third-thumb-toe-pcb.webp)
+- At first I planned to control it with EMG, like most prosthetics. But I couldn't find a muscle reliable enough to drive the servos well: walking uses pretty much all of your leg muscles, so they're always firing. Pressing your toes down is a much cleaner signal.
+- I prototyped the controls with two ESP32s first. This nRF52810 board is the toe sensor's replacement: small enough to fit in the shoe and running off a coin cell, with force-sensing resistors under your toes feeding the chip's ADC and the reading sent over Bluetooth.
+- The board is designed; fabricating it is the next step.
 
 ### EMG Amplifier PCB
 ![](images/projects/emg-amplifier.webp)
@@ -91,11 +99,20 @@ Summary: My own board for reading muscle signals and sending them wirelessly, bu
 ### Hacker Fab
 ![](images/projects/hackerfab.webp)
 Where: Waterloo Hacker Fab · 2025
-Status: prototype
+Status: in progress
 Tags: hardware, firmware
-Tools: KiCad, ESP32, Stepper motor
+Tools: KiCad, ESP32, Raspberry Pi Pico, 3D printing
 Size: normal
 Summary: Hardware I've built for Waterloo Hacker Fab, a student fab where we make our own semiconductor tools from scratch.
+**Micromanipulator (what I'm on now)**
+![The original MicroManipulatorStepper v4 build that I'm replicating](images/projects/micromanipulator-reference.webp)
+*Above: the original MicroManipulatorStepper v4, which is what I'm trying to replicate. Not my build (yet).*
+
+- I'm building an open-source XYZ micromanipulator ([MicroManipulatorStepper v4](https://github.com/0x23/MicroManipulatorStepper)) that moves in steps smaller than a micron. On our lithography stepper it moves the stage holding the chip underneath the mask, lining each pattern up precisely so we can build transistors layer by layer.
+- Three NEMA 17 steppers each turn a horn with 17 magnets glued on. Rods with tiny steel ball joints connect the horns to the tip, so turning the motors moves the tip in X, Y and Z.
+- Each motor has a magnetic encoder (MT6835) so a Raspberry Pi Pico 2 knows exactly where it is, with TB6612 drivers running the motors.
+- So far I've 3D printed all the parts and I'm putting it together now: gluing magnets into the horns, sanding the rods to equal length and building the ball joints.
+
 **Argon mass flow controller**
 ![Argon mass flow controller PCB](images/projects/hackerfab-mfc-pcb.webp)
 - I designed this board in KiCad to control how much argon flows into our PVD sputtering system.
@@ -116,6 +133,15 @@ Summary: A little generator that turns moving air into electricity using static,
 - We designed the whole thing in SolidWorks (the rotor, the contact surfaces and the housing the air blows through) and built it mostly out of cheap household materials.
 - It held 30–50 V for over two minutes and got up to 52 V, from something you can hold in one hand.
 ![SolidWorks design of the generator rotor](images/projects/teng-cad.webp)
+
+### Strandbeest
+![](images/projects/strandbeest.webp)
+Where: Personal
+Status: complete
+Tags: hardware
+Tools: SolidWorks
+Summary: A wind-powered walking machine built on Theo Jansen's Strandbeest leg linkage, modelled in SolidWorks.
+- The fan turns a crankshaft, and the linkages turn that rotation into walking legs.
 
 ### Neural Style Transfer
 ![](images/projects/style-transfer.webp)
